@@ -1,0 +1,19 @@
+# 依赖
+node_modules/
+
+# Wrangler 本地状态与缓存（含账号信息，切勿提交）
+.wrangler/
+.wrangler-build/
+
+# 日志
+*.log
+npm-debug.log*
+
+# 环境变量与密钥
+.dev.vars
+.env
+.env.*
+
+# 系统文件
+.DS_Store
+Thumbs.db

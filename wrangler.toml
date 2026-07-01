@@ -1,0 +1,46 @@
+# =============================================================================
+# Cloudflare Worker 加密聊天室 - 第一阶段 配置
+# =============================================================================
+name = "max-chat-room"
+compatibility_date = "2026-02-07"
+
+# 入口文件
+main = "worker.js"
+
+# -----------------------------------------------------------------------------
+# Durable Object 绑定：每个房间口令映射到唯一的 ChatRoom 实例
+# 同一房间的所有 WebSocket 连接进入同一实例，保证用户列表/消息/文件信令实时互通
+# -----------------------------------------------------------------------------
+[[durable_objects.bindings]]
+name = "CHAT_ROOM"
+class_name = "ChatRoom"
+
+# DO 迁移：使用 SQLite 存储后端的新类（免费计划亦可用）
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["ChatRoom"]
+
+# -----------------------------------------------------------------------------
+# KV 命名空间绑定（绑定名在代码中通过 env.ROOM_KV 访问）
+# -----------------------------------------------------------------------------
+# 使用前请先创建 KV 命名空间，把下面的 id / preview_id 替换为你自己的真实值。
+# 方式一（命令行）：
+#   wrangler kv namespace create ROOM_KV
+#   wrangler kv namespace create ROOM_KV --preview
+# 方式二（Cloudflare 网页端）：
+#   Dashboard → Storage & Databases → KV → Create namespace（如命名 ROOM_KV），
+#   创建后复制其 Namespace ID 填入下方 id；preview_id 可填同一个或再建一个预览用命名空间。
+[[kv_namespaces]]
+binding = "ROOM_KV"
+id = "在此填入你的 ROOM_KV Namespace ID"
+preview_id = "在此填入你的预览 Namespace ID"
+
+# -----------------------------------------------------------------------------
+# 将 index.html 作为文本（Text）导入：worker.js 中 `import HTML from "./index.html"`
+# 得到字符串，再用 new Response(字符串) 返回。
+# （sw.js 已内联进 worker.js 字符串常量，无需 import，避免 .js 被当模块执行而报错）
+# -----------------------------------------------------------------------------
+[[rules]]
+type = "Text"
+globs = ["**/*.html"]
+fallthrough = false

@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>加密聊天室</title>
+  <style>
+    /* ===== 基础与变量 ===== */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    /* 深色主题（默认） */
+    :root, :root[data-theme="dark"] {
+      --bg: #0f1117;
+      --panel: #1a1d27;
+      --panel-2: #232733;
+      --accent: #4f8cff;
+      --text: #e6e8ef;
+      --muted: #8b90a0;
+      --bubble-self: #4f8cff;
+      --bubble-other: #2a2e3a;
+      --danger: #ff5b5b;
+      --border: #262a36;
+      --border-2: #313644;
+    }
+    /* 浅色主题 */
+    :root[data-theme="light"] {
+      --bg: #f0f2f5;
+      --panel: #ffffff;
+      --panel-2: #f3f4f7;
+      --accent: #3a7bff;
+      --text: #1c1e21;
+      --muted: #8a8d91;
+      --bubble-self: #3a7bff;
+      --bubble-other: #e9eaed;
+      --danger: #e0245e;
+      --border: #e4e6eb;
+      --border-2: #d8dadf;
+    }
+    html, body { height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+      transition: background .2s, color .2s;
+    }
+
+    /* ===== 入房弹窗 ===== */
+    .modal-mask {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.6);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100;
+    }
+    .modal {
+      background: var(--panel);
+      width: 90%; max-width: 360px;
+      border-radius: 16px;
+      padding: 28px 24px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.5);
+    }
+    .modal h2 { font-size: 20px; margin-bottom: 4px; }
+    .modal p { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+    .modal input {
+      width: 100%;
+      background: var(--panel-2);
+      border: 1px solid #313644;
+      border-radius: 10px;
+      padding: 12px 14px;
+      color: var(--text);
+      font-size: 15px;
+      margin-bottom: 14px;
+      outline: none;
+    }
+    .modal input:focus { border-color: var(--accent); }
+
+    /* 六位口令方格输入（验证码样式） */
+    .code-boxes { display: flex; gap: 8px; margin-bottom: 14px; justify-content: space-between; }
+    .code-box {
+      flex: 1 1 0; width: 0; min-width: 0; aspect-ratio: 1 / 1;
+      background: var(--panel-2); border: 1px solid var(--border-2);
+      border-radius: 10px; color: var(--text);
+      font-size: 22px; font-weight: 600; text-align: center;
+      outline: none; padding: 0;
+    }
+    .code-box:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(79,140,255,.25); }
+    .code-box.filled { border-color: var(--accent); }
+    .btn {
+      width: 100%;
+      background: var(--accent);
+      color: #fff; border: none;
+      border-radius: 10px;
+      padding: 13px;
+      font-size: 15px;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+    .btn:active { opacity: .8; }
+    .modal .err { color: var(--danger); font-size: 13px; min-height: 18px; margin-bottom: 8px; }
+
+    /* ===== 主布局 ===== */
+    .layout { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+    /* 顶部栏 */
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--panel);
+      border-bottom: 1px solid #262a36;
+      flex: 0 0 auto;
+    }
+    .topbar .room-no { font-size: 16px; font-weight: 600; }
+    .topbar .room-no span { color: var(--accent); }
+    .topbar .fp {
+      margin-left: 10px; font-size: 12px; color: var(--muted);
+      font-family: monospace; padding: 2px 8px; border-radius: 6px;
+      background: var(--panel-2); border: 1px solid #313644; cursor: help;
+    }
+    .topbar .exit {
+      background: var(--panel-2); color: var(--text);
+      border: 1px solid #313644; border-radius: 8px;
+      padding: 7px 14px; font-size: 13px; cursor: pointer;
+    }
+    /* 主体：左侧用户列表 + 右侧消息区 */
+    .main { flex: 1 1 auto; display: flex; min-height: 0; }
+    /* 左侧用户列表 */
+    .sidebar {
+      flex: 0 0 200px;
+      background: var(--panel);
+      border-right: 1px solid #262a36;
+      overflow-y: auto;
+      padding: 10px;
+    }
+    .sidebar h3 { font-size: 12px; color: var(--muted); padding: 6px 8px; text-transform: uppercase; }
+    .user {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 9px 10px; border-radius: 8px; position: relative;
+    }
+    .user:hover { background: var(--panel-2); }
+    .user .uname { display: flex; align-items: center; gap: 6px; font-size: 14px; overflow: hidden; }
+    .user .uname .dot { width: 8px; height: 8px; border-radius: 50%; background: #3ad07a; flex: 0 0 auto; }
+    .user .uname .txt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user .menu-btn {
+      background: none; border: none; color: var(--muted);
+      cursor: pointer; font-size: 18px; padding: 0 4px; line-height: 1;
+    }
+    /* 操作菜单 */
+    .menu {
+      position: absolute; right: 8px; top: 36px; z-index: 20;
+      background: var(--panel-2); border: 1px solid #363b4a;
+      border-radius: 8px; overflow: hidden; min-width: 96px;
+      box-shadow: 0 6px 20px rgba(0,0,0,.4);
+    }
+    .menu div { padding: 9px 14px; font-size: 13px; cursor: pointer; }
+    .menu div:hover { background: var(--accent); color: #fff; }
+    .menu div.danger { color: var(--danger); }
+    .menu div.danger:hover { background: var(--danger); color: #fff; }
+
+    /* 右侧消息区 */
+    .chat { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; position: relative; }
+    .messages { flex: 1 1 auto; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .sys { text-align: center; color: var(--muted); font-size: 12px; }
+    .bubble-row { display: flex; flex-direction: column; max-width: 75%; align-items: flex-start; }
+    .bubble-row.self { align-self: flex-end; align-items: flex-end; }
+    .bubble-row .meta { font-size: 11px; color: var(--muted); margin-bottom: 3px; padding: 0 4px; }
+    .bubble {
+      padding: 10px 13px; border-radius: 14px; font-size: 14px;
+      line-height: 1.5; word-break: break-word; background: var(--bubble-other);
+      max-width: 100%; width: fit-content;
+    }
+    .bubble-row.self .bubble { background: var(--bubble-self); color: #fff; }
+
+    /* 底部输入框 */
+    .composer {
+      flex: 0 0 auto; display: flex; gap: 8px; padding: 12px;
+      background: var(--panel); border-top: 1px solid #262a36;
+    }
+    .composer input {
+      flex: 1 1 auto; background: var(--panel-2);
+      border: 1px solid #313644; border-radius: 10px;
+      padding: 11px 14px; color: var(--text); font-size: 15px; outline: none;
+    }
+    .composer input:focus { border-color: var(--accent); }
+    .composer button {
+      background: var(--accent); color: #fff; border: none;
+      border-radius: 10px; padding: 0 20px; font-size: 15px; cursor: pointer;
+    }
+
+    /* 连接状态条 */
+    .status {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+      background: var(--danger); color: #fff; text-align: center;
+      font-size: 13px; padding: 6px; display: none;
+    }
+
+    /* ===== 移动端适配 ===== */
+    @media (max-width: 640px) {
+      .sidebar {
+        position: fixed; left: 0; top: 0; bottom: 0; z-index: 40;
+        flex-basis: 75%; max-width: 280px;
+        transform: translateX(-100%); transition: transform .25s;
+      }
+      .sidebar.open { transform: translateX(0); box-shadow: 4px 0 20px rgba(0,0,0,.5); }
+      .menu-toggle { display: inline-block !important; }
+      .sidebar-mask {
+        position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 39; display: none;
+      }
+      .sidebar-mask.open { display: block; }
+
+      /* 顶栏更紧凑，避免按钮挤出屏幕 */
+      .topbar { padding: 10px 12px; }
+      .topbar .room-no { font-size: 15px; }
+      .topbar .fp { margin-left: 6px; font-size: 11px; padding: 2px 6px; }
+      .topbar .exit { padding: 6px 10px; font-size: 12px; }
+      .icon-btn { padding: 6px 8px; }
+      .topbar > div:last-child { gap: 6px !important; }
+
+      /* 消息气泡更宽，利用窄屏空间 */
+      .bubble-row { max-width: 86%; }
+      .messages { padding: 12px; gap: 10px; }
+
+      /* 输入区适配：附件按钮与发送按钮缩小 */
+      .composer { padding: 8px; gap: 6px; }
+      .composer .attach { padding: 0 12px; font-size: 17px; }
+      .composer textarea { font-size: 16px; padding: 10px 12px; } /* 16px 防 iOS 聚焦缩放 */
+      .composer button { padding: 0 16px; font-size: 14px; }
+
+      /* 弹窗与 Toast 适配窄屏 */
+      .modal { padding: 22px 18px; }
+      .toast-wrap { top: 10px; right: 10px; left: 10px; }
+      .toast { max-width: none; }
+    }
+    .menu-toggle {
+      display: none; background: var(--panel-2); color: var(--text);
+      border: 1px solid var(--border-2); border-radius: 8px;
+      padding: 7px 12px; font-size: 14px; cursor: pointer; margin-right: 10px;
+    }
+
+    /* ===== 控制面板 ===== */
+    .btn-ghost { background: var(--panel-2); border: 1px solid #313644; }
+    .panel-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 0; font-size: 15px;
+    }
+    .panel-sep { height: 1px; background: #2a2e3a; margin: 16px 0; }
+    .panel-label { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+    .panel-hint { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+    /* 开关 */
+    .switch { position: relative; display: inline-block; width: 46px; height: 26px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; inset: 0; cursor: pointer;
+      background: #3a3f4d; border-radius: 26px; transition: .2s;
+    }
+    .slider:before {
+      content: ""; position: absolute; height: 20px; width: 20px;
+      left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: .2s;
+    }
+    .switch input:checked + .slider { background: var(--accent); }
+    .switch input:checked + .slider:before { transform: translateX(20px); }
+
+    /* ===== 主题切换 / 顶栏图标按钮 ===== */
+    .icon-btn {
+      background: var(--panel-2); color: var(--text);
+      border: 1px solid var(--border-2); border-radius: 8px;
+      padding: 7px 10px; font-size: 14px; cursor: pointer; line-height: 1;
+    }
+    .icon-btn:hover { border-color: var(--accent); }
+
+    /* ===== Toast 通知（右上角，自动消失，参考 Telegram） ===== */
+    .toast-wrap {
+      position: fixed; top: 14px; right: 14px; z-index: 200;
+      display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+    }
+    .toast {
+      min-width: 180px; max-width: 320px;
+      background: var(--panel-2); color: var(--text);
+      border: 1px solid var(--border-2); border-left: 3px solid var(--accent);
+      border-radius: 8px; padding: 10px 14px; font-size: 13px;
+      box-shadow: 0 6px 24px rgba(0,0,0,.3);
+      animation: toastIn .25s ease; pointer-events: auto;
+    }
+    .toast.err { border-left-color: var(--danger); }
+    .toast.fade { animation: toastOut .3s ease forwards; }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes toastOut { to { opacity: 0; transform: translateX(20px); } }
+
+    /* ===== 文件消息气泡 ===== */
+    .file-card {
+      display: flex; align-items: center; gap: 10px;
+      min-width: 180px; max-width: 260px;
+    }
+    .file-card .ficon { font-size: 26px; flex: 0 0 auto; }
+    .file-card .finfo { flex: 1 1 auto; overflow: hidden; }
+    .file-card .fname { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .file-card .fsize { font-size: 11px; opacity: .8; margin-top: 2px; }
+    .file-card .fbtn {
+      flex: 0 0 auto; background: rgba(255,255,255,.18);
+      border: none; color: inherit; border-radius: 8px;
+      padding: 7px 10px; font-size: 13px; cursor: pointer;
+    }
+    .bubble-row:not(.self) .file-card .fbtn { background: var(--panel-2); border: 1px solid var(--border-2); }
+    /* 进度条（用于文件消息内嵌进度） */
+    .fprog { height: 4px; border-radius: 3px; background: rgba(255,255,255,.25); margin-top: 6px; overflow: hidden; }
+    .bubble-row:not(.self) .fprog { background: var(--border-2); }
+    .fprog > i { display: block; height: 100%; width: 0; background: #fff; transition: width .15s; }
+    .bubble-row:not(.self) .fprog > i { background: var(--accent); }
+
+    /* ===== 输入区：附件按钮 + 多行 textarea ===== */
+    .composer textarea {
+      flex: 1 1 auto; background: var(--panel-2);
+      border: 1px solid var(--border-2); border-radius: 10px;
+      padding: 11px 14px; color: var(--text); font-size: 15px; outline: none;
+      resize: none; max-height: 120px; min-height: 44px;
+      font-family: inherit; line-height: 1.4;
+    }
+    .composer textarea:focus { border-color: var(--accent); }
+    .composer .attach {
+      flex: 0 0 auto; background: var(--panel-2); color: var(--text);
+      border: 1px solid var(--border-2); border-radius: 10px;
+      padding: 0 14px; font-size: 18px; cursor: pointer;
+    }
+    .composer .attach:hover { border-color: var(--accent); }
+  </style>
+
+  <!-- CryptoJS：用于前端 SHA-256（密码哈希）、PBKDF2（密钥派生）与 AES（消息加解密） -->
+  <!-- 加 SRI 完整性校验 + crossorigin：CDN 被篡改时浏览器会拒绝加载，缓解供应链/中间人攻击 -->
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"
+    integrity="sha384-mgWScxWVKP8F7PBbpNp7i/aSb17kN0LcifBpahAplF3Mn0GR4/u1oMpWIm2rD8yY"
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"></script>
+
+
+</head>
+<body>
+  <!-- 入房弹窗 -->
+  <div class="modal-mask" id="joinModal">
+    <div class="modal">
+      <h2>加入聊天室</h2>
+      <p>输入 6 位数字口令与昵称即可进入</p>
+      <div class="code-boxes" id="codeBoxes">
+        <input class="code-box" type="tel" maxlength="1" inputmode="numeric" aria-label="口令第1位" />
+        <input class="code-box" type="tel" maxlength="1" inputmode="numeric" aria-label="口令第2位" />
+        <input class="code-box" type="tel" maxlength="1" inputmode="numeric" aria-label="口令第3位" />
+        <input class="code-box" type="tel" maxlength="1" inputmode="numeric" aria-label="口令第4位" />
+        <input class="code-box" type="tel" maxlength="1" inputmode="numeric" aria-label="口令第5位" />
+        <input class="code-box" type="tel" maxlength="1" inputmode="numeric" aria-label="口令第6位" />
+      </div>
+      <input id="nameInput" type="text" maxlength="20" placeholder="你的昵称" />
+      <input id="pwInput" type="password" maxlength="32" placeholder="房间密码" style="display:none;" />
+      <div class="err" id="joinErr"></div>
+      <button class="btn" id="joinBtn">进入房间</button>
+    </div>
+  </div>
+
+  <!-- 主界面 -->
+  <div class="layout" id="app" style="display:none;">
+    <div class="status" id="statusBar"></div>
+
+    <!-- 顶部栏：房间号 + 设置 + 退出 -->
+    <div class="topbar">
+      <div style="display:flex;align-items:center;">
+        <button class="menu-toggle" id="menuToggle">☰</button>
+        <div class="room-no">房间号：<span id="roomNo"></span></div>
+        <span class="fp" id="keyFp" title="密钥指纹：与对方核对一致，可确认未被中间人篡改"></span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="icon-btn" id="themeBtn" title="切换深色/浅色">🌙</button>
+        <button class="exit" id="settingsBtn" style="display:none;">⚙ 设置</button>
+        <button class="exit" id="exitBtn">退出</button>
+      </div>
+    </div>
+
+    <!-- 房主控制面板 -->
+    <div class="modal-mask" id="panelModal" style="display:none;">
+      <div class="modal">
+        <h2>房间设置</h2>
+        <p>仅房主可见，修改后即时生效</p>
+
+        <div class="panel-row">
+          <span>允许新人加入</span>
+          <label class="switch">
+            <input type="checkbox" id="allowJoinToggle" />
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="panel-sep"></div>
+        <div class="panel-label">房间密码</div>
+        <div class="panel-hint" id="pwStatus">当前：无密码</div>
+        <input id="newPwInput" type="password" maxlength="32" placeholder="输入新密码（留空则不修改）" />
+        <div style="display:flex;gap:8px;">
+          <button class="btn" id="savePwBtn">保存密码</button>
+          <button class="btn btn-ghost" id="clearPwBtn">取消密码</button>
+        </div>
+
+        <div class="panel-sep"></div>
+        <button class="btn btn-ghost" id="closePanelBtn">关闭</button>
+      </div>
+    </div>
+
+    <div class="main">
+      <!-- 左侧用户列表 -->
+      <div class="sidebar" id="sidebar">
+        <h3>在线用户</h3>
+        <div id="userList"></div>
+      </div>
+      <div class="sidebar-mask" id="sidebarMask"></div>
+
+      <!-- 右侧消息区 -->
+      <div class="chat">
+        <div class="messages" id="messages"></div>
+        <div class="composer">
+          <button class="attach" id="attachBtn" title="发送文件">📎</button>
+          <input type="file" id="fileInput" style="display:none;" />
+          <textarea id="msgInput" rows="1" placeholder="输入消息，Enter 发送，Shift+Enter 换行" autocomplete="off"></textarea>
+          <button id="sendBtn">发送</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast 通知容器（右上角） -->
+  <div class="toast-wrap" id="toastWrap"></div>
+
+  <script>
+  // ===========================================================================
+  // 前端逻辑：连接管理 / 入房 / 消息收发 / 用户列表 / 房主操作 / 自动重连
+  // ===========================================================================
+  (function () {
+    // ---- DOM 引用 ----
+    const $ = (id) => document.getElementById(id);
+    const joinModal = $("joinModal"), nameInput = $("nameInput");
+    const codeBoxes = Array.from(document.querySelectorAll("#codeBoxes .code-box"));
+    const pwInput = $("pwInput"), joinErr = $("joinErr"), joinBtn = $("joinBtn");
+    const app = $("app"), roomNo = $("roomNo"), exitBtn = $("exitBtn"), keyFp = $("keyFp");
+    const userListEl = $("userList"), messagesEl = $("messages");
+    const msgInput = $("msgInput"), sendBtn = $("sendBtn"), statusBar = $("statusBar");
+    const sidebar = $("sidebar"), sidebarMask = $("sidebarMask"), menuToggle = $("menuToggle");
+    // 主题 / Toast / 文件传输相关
+    const themeBtn = $("themeBtn"), toastWrap = $("toastWrap");
+    const attachBtn = $("attachBtn"), fileInput = $("fileInput");
+    // 控制面板相关
+    const settingsBtn = $("settingsBtn"), panelModal = $("panelModal");
+    const allowJoinToggle = $("allowJoinToggle"), pwStatus = $("pwStatus");
+    const newPwInput = $("newPwInput"), savePwBtn = $("savePwBtn");
+    const clearPwBtn = $("clearPwBtn"), closePanelBtn = $("closePanelBtn");
+
+    // ---- 全局状态 ----
+    let ws = null;
+    let roomCode = "", userId = "", password = "";  // password 明文仅留在本地内存，用于派生密钥，绝不发送
+    let selfId = "", ownerId = "";
+    let users = [];               // [{id, name, isOwner}]
+    let roomSalt = "";            // 房间盐（hello 阶段获取，或建房时本地生成）
+    let pendingNewRoom = false;   // 当前是否将作为房主新建房间
+    let roomSettings = { allowJoin: true, hasPassword: false };
+    let reconnectCount = 0;       // 已重连次数
+    const MAX_RECONNECT = 5;      // 最大重连次数
+    let reconnectTimer = null;
+    let manualClose = false;      // 是否为用户主动退出
+    let joined = false;           // 是否已成功入房
+    let awaitingPassword = false; // 是否正在等待用户输入"已加密房间"的密码
+    let heartbeatTimer = null;    // 心跳定时器
+
+    // 每个标签页一个稳定 token：用于服务端区分"同一人重连(接管)"与"不同人重名"
+    let sessionToken = "";
+    try {
+      sessionToken = sessionStorage.getItem("chat-token") || "";
+      if (!sessionToken) {
+        sessionToken = (Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
+        sessionStorage.setItem("chat-token", sessionToken);
+      }
+    } catch { sessionToken = Date.now().toString(36) + Math.random().toString(36).slice(2, 10); }
+
+    // 生成消息唯一 ID（本地回显与服务器广播去重用）
+    function genMsgId() {
+      return sessionToken + "-" + (Date.now().toString(36)) + Math.random().toString(36).slice(2, 6);
+    }
+
+    // ---- 文件传输状态 ----
+    // 自适应分片：大文件用更大分片，减少分片条数与往返。
+    // 分片密文经 AES+Base64 膨胀约 1.37x，768KB -> 约 1.05MB 字符，低于服务端 1.5MB 单条上限。
+    function chunkSizeFor(fileSize) {
+      // 注意：Cloudflare WebSocket 单帧上限约 1 MiB。分片经 AES + Base64 后体积约放大 1.4 倍，
+      // 故明文分片需控制在 ~512KB 以内（512KB -> 约 700KB 编码后），确保不超帧限导致静默丢帧。
+      if (fileSize <= 5 * 1024 * 1024) return 256 * 1024;   // ≤5MB：256KB
+      return 512 * 1024;                                    // 更大文件：512KB（编码后 ~700KB，安全）
+    }
+    const MAX_FILE_SIZE = 30 * 1024 * 1024; // 单文件上限 30MB（与服务端一致）
+    const sendingFiles = new Map();      // fileId -> { file }（发送端本地原文件，自己下载免回源）
+    const downloadingFiles = new Map();  // fileId -> { meta, parts:[], received, ui }（正在下载）
+    let fileSeq = 0;                     // 本端文件序号，用于生成 fileId
+
+    // =========================================================================
+    // 加密模块（轻量版）：AES-256-CBC + 随机 IV，优先响应速度
+    // =========================================================================
+    // 安全模型（以速度优先）：
+    //  - 仅做保密性：AES-256-CBC 加密 + 每条随机 IV，绝非明文传输；为提速去掉了 HMAC 完整性。
+    //  - 密钥派生：PBKDF2(SHA-256, 低迭代) 从 [口令或密码 + 盐] 派生 256 位密钥。
+    //  - 真端到端：设密码后当前密钥由【密码+盐】派生，服务器不知道密码 => 无法解密；
+    //    无密码时由【口令+盐】派生（服务器可推导，等价传输层混淆）。
+    //  - 密钥轮换：roomKeys 保存历史密钥（新->旧），密文带 8 位密钥指纹前缀，解密时按指纹直接选对密钥，
+    //    使改/取消密码后仍能解密此前的历史消息与文件。
+    const PBKDF2_ITER = 1000; // PBKDF2 迭代次数（速度优先；仅作基本密钥派生，非高强度防爆破）
+
+    let roomKeys = []; // [{ encKey, fp }]，索引 0 为当前密钥
+
+    // 密码认证哈希：SHA-256(盐 + 密码)。发给服务器的是它，而非明文密码。
+    function authHash(saltHex, password) {
+      return CryptoJS.SHA256(saltHex + password).toString();
+    }
+
+    // 由 secret(口令或密码) + 房间盐派生 256 位 AES 密钥（轻量，优先响应速度）
+    function buildKey(secret) {
+      const salt = CryptoJS.enc.Hex.parse(roomSalt);
+      const encKey = CryptoJS.PBKDF2(secret, salt, {
+        keySize: 256 / 32, iterations: PBKDF2_ITER, hasher: CryptoJS.algo.SHA256,
+      });
+      const fp = CryptoJS.SHA256(encKey).toString().slice(0, 8);
+      return { encKey, fp };
+    }
+
+    // 把某 secret 派生的密钥置为当前（已存在则移到最前，保留历史用于解密旧消息）
+    function addKey(secret) {
+      const k = buildKey(secret);
+      roomKeys = [k, ...roomKeys.filter((x) => x.fp !== k.fp)];
+      updateFingerprint();
+      if (joined) saveSession();
+    }
+
+    // 初始化密钥集：始终含口令基础密钥；有密码则把密码密钥置为当前
+    function setupKeys() {
+      roomKeys = [];
+      addKey(roomCode);                                            // 口令基础密钥
+      if (roomSettings.hasPassword && password) addKey(password);  // 密码密钥置顶（真 E2E）
+    }
+
+    function currentFingerprint() {
+      return roomKeys.length ? roomKeys[0].fp : "";
+    }
+
+    // 加密：输入 WordArray，输出 "fp:ivHex:密文Base64"（fp 为密钥指纹，供解密端直接选对密钥）
+    function encWith(k, plainWA) {
+      const iv = CryptoJS.lib.WordArray.random(16);
+      const enc = CryptoJS.AES.encrypt(plainWA, k.encKey, {
+        iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7,
+      });
+      return k.fp + ":" + iv.toString(CryptoJS.enc.Hex) + ":" + enc.ciphertext.toString(CryptoJS.enc.Base64);
+    }
+
+    // 按指纹前缀选密钥后解密；返回明文 WordArray，失败返回 null
+    function decTry(cipher) {
+      const parts = String(cipher).split(":");
+      if (parts.length < 3) return null;
+      const fp = parts[0];
+      let iv, ctWA;
+      try {
+        iv = CryptoJS.enc.Hex.parse(parts[1]);
+        ctWA = CryptoJS.enc.Base64.parse(parts[2]);
+      } catch { return null; }
+      // 优先用指纹匹配的密钥；匹配不到则回退尝试所有密钥（兼容性兜底）
+      const candidates = roomKeys.filter((k) => k.fp === fp);
+      const tryKeys = candidates.length ? candidates : roomKeys;
+      for (const k of tryKeys) {
+        try {
+          const wa = CryptoJS.AES.decrypt(
+            CryptoJS.lib.CipherParams.create({ ciphertext: ctWA.clone() }),
+            k.encKey, { iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 }
+          );
+          if (wa && wa.sigBytes >= 0) return wa;
+        } catch { /* 换下一个密钥 */ }
+      }
+      return null;
+    }
+
+    // 文本消息加/解密
+    function aesEncrypt(plain) {
+      if (!roomKeys.length) return plain;
+      return encWith(roomKeys[0], CryptoJS.enc.Utf8.parse(plain));
+    }
+    function aesDecrypt(cipher) {
+      if (!roomKeys.length) return cipher;
+      const wa = decTry(cipher);
+      if (!wa) return "[无法解密：密钥不一致或消息被篡改]";
+      try { return wa.toString(CryptoJS.enc.Utf8) || "[无法解密：密钥不一致]"; }
+      catch { return "[无法解密：密钥不一致]"; }
+    }
+
+    // ---- 文件分片加解密（二进制 <-> WordArray，同样走认证加密） ----
+    function encryptChunk(arrayBuffer) {
+      return encWith(roomKeys[0], CryptoJS.lib.WordArray.create(arrayBuffer));
+    }
+    function decryptChunk(cipher) {
+      const wa = decTry(cipher);
+      if (!wa) throw new Error("decrypt failed");
+      return wordArrayToUint8(wa);
+    }
+
+    // WordArray -> Uint8Array
+    function wordArrayToUint8(wa) {
+      const { words, sigBytes } = wa;
+      const u8 = new Uint8Array(sigBytes);
+      for (let i = 0; i < sigBytes; i++) {
+        u8[i] = (words[i >>> 2] >>> (24 - (i % 4) * 8)) & 0xff;
+      }
+      return u8;
+    }
+
+    // ---- WebSocket 地址 ----
+    // 仅在 HTTPS 下使用 wss；若线上误用 HTTP（非 localhost）则告警，避免明文传输被中间人窃听
+    function wsUrl() {
+      const isLocal = ["localhost", "127.0.0.1"].includes(location.hostname);
+      if (location.protocol !== "https:" && !isLocal) {
+        showStatus("警告：当前非 HTTPS 连接，存在被中间人窃听风险，请使用 https 访问");
+      }
+      const proto = location.protocol === "https:" ? "wss:" : "ws:";
+      return proto + "//" + location.host + "/websocket?room=" + encodeURIComponent(roomCode);
+    }
+
+    // ---- 状态条 ----
+    function showStatus(text) { statusBar.textContent = text; statusBar.style.display = "block"; }
+    function hideStatus() { statusBar.style.display = "none"; }
+
+    // ---- Toast 通知（右上角，自动消失，参考 Telegram） ----
+    function toast(text, isErr) {
+      const el = document.createElement("div");
+      el.className = "toast" + (isErr ? " err" : "");
+      el.textContent = text;
+      toastWrap.appendChild(el);
+      setTimeout(() => {
+        el.classList.add("fade");
+        setTimeout(() => el.remove(), 300);
+      }, 3000);
+    }
+
+    // ---- 主题：深色/浅色，手动切换并记忆，默认跟随系统 ----
+    function applyTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      themeBtn.textContent = theme === "light" ? "☀️" : "🌙";
+    }
+    function initTheme() {
+      let theme = localStorage.getItem("chat-theme");
+      if (!theme) {
+        theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+      }
+      applyTheme(theme);
+    }
+    themeBtn.addEventListener("click", () => {
+      const next = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+      localStorage.setItem("chat-theme", next);
+      applyTheme(next);
+    });
+    initTheme();
+
+    // ---- 会话持久化（用于刷新后自动重入，保住房主身份） ----
+    // 注意：密码明文存于 sessionStorage（仅本标签页、关闭即清），用于刷新后重新派生密钥。
+    const SS_KEY = "chat-session";
+    function saveSession() {
+      try {
+        sessionStorage.setItem(SS_KEY, JSON.stringify({
+          roomCode, userId, password, hasPassword: roomSettings.hasPassword,
+        }));
+      } catch {}
+    }
+    function clearSession() {
+      try { sessionStorage.removeItem(SS_KEY); } catch {}
+    }
+    function restoreSession() {
+      let s;
+      try { s = JSON.parse(sessionStorage.getItem(SS_KEY) || "null"); } catch { s = null; }
+      if (!s || !s.roomCode || !s.userId) return false;
+      roomCode = s.roomCode; userId = s.userId; password = s.password || "";
+      roomSettings.hasPassword = !!s.hasPassword;
+      manualClose = false;
+      connect();
+      return true;
+    }
+
+    // =========================================================================
+    // 连接与重连
+    // =========================================================================
+    function connect() {
+      // 关闭并屏蔽可能残留的旧连接，避免重复监听导致消息/文件被渲染两次
+      if (ws) { try { ws.close(); } catch {} }
+      if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+      stopHeartbeat();
+      if (joined) showStatus("连接中...");
+      const sock = new WebSocket(wsUrl());
+      ws = sock;
+
+      sock.addEventListener("open", () => {
+        if (ws !== sock) return; // 已被更新的连接取代，忽略
+        hideStatus();
+        reconnectCount = 0;
+        startHeartbeat();
+        // 第一段握手：先 hello 拿房间盐 / 是否有密码，再本地派生密钥后 join
+        send({ type: "hello", roomCode });
+      });
+
+      sock.addEventListener("message", (e) => {
+        if (ws !== sock) return; // 仅处理当前连接的消息，屏蔽旧连接
+        let data; try { data = JSON.parse(e.data); } catch { return; }
+        handleServerMessage(data);
+      });
+
+      sock.addEventListener("close", () => {
+        if (ws !== sock) return; // 旧连接关闭，忽略
+        stopHeartbeat();
+        if (manualClose) return;
+        tryReconnect();
+      });
+      sock.addEventListener("error", () => { try { sock.close(); } catch {} });
+    }
+
+    // 心跳：定期发送 ping，让服务端刷新本连接的 lastSeen 并触发死连接清扫
+    function startHeartbeat() {
+      stopHeartbeat();
+      heartbeatTimer = setInterval(() => send({ type: "ping" }), 15000);
+    }
+    function stopHeartbeat() {
+      if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
+    }
+
+    // 切回前台时立即补一次心跳；若连接已断则立即重连，避免后台节流期间连接被判离线
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState !== "visible" || !joined || manualClose) return;
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        send({ type: "ping" });
+      } else {
+        if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+        reconnectCount = 0;
+        connect();
+      }
+    });
+
+    function tryReconnect() {
+      if (reconnectCount >= MAX_RECONNECT) {
+        showStatus("连接已断开，重连失败，请刷新页面");
+        return;
+      }
+      reconnectCount++;
+      showStatus(`连接断开，正在重连（${reconnectCount}/${MAX_RECONNECT}）...`);
+      reconnectTimer = setTimeout(connect, 3000);
+    }
+
+    function send(obj) {
+      if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
+    }
+
+    // =========================================================================
+    // 处理服务器消息
+    // =========================================================================
+    function handleServerMessage(data) {
+      switch (data.type) {
+        case "joined":
+          joined = true;
+          awaitingPassword = false;
+          joinBtn.textContent = "进入房间";
+          selfId = data.selfId; ownerId = data.ownerId;
+          users = data.users || [];
+          roomSettings = data.settings || roomSettings;
+          saveSession(); // 记录会话，刷新后可自动重入并保住房主
+          enterRoom();
+          // 重连/新进都会收到 joined：先清空消息区与去重集，再渲染服务器下发的历史，避免重复或漏渲染
+          messagesEl.innerHTML = "";
+          seenMsgIds.clear();
+          (data.history || []).forEach((m) => renderMessage(m));
+          renderUserList();
+          refreshOwnerUI();
+          break;
+        case "roomInfo":
+          // 第一段握手响应：据此本地派生密钥，再发 join
+          handleRoomInfo(data);
+          break;
+        case "settings":
+          // 房间设置变更（允许加入 / 密码状态）
+          roomSettings = data.settings || roomSettings;
+          if (data.passwordChanged) onPasswordChanged(data);
+          refreshOwnerUI();
+          break;
+        case "joinError":
+          handleJoinError(data);
+          break;
+        case "userList":
+          users = data.users || [];
+          ownerId = (users.find(u => u.isOwner) || {}).id || ownerId;
+          renderUserList();  // 重新渲染列表（新人加入/离开/房主顺延后，房主才能看到对其他人的 ⋮ 操作按钮）
+          refreshOwnerUI();  // 房主可能顺延变更，刷新设置按钮显隐
+          break;
+        case "message":
+          renderMessage(data);
+          break;
+        case "userJoined":
+          renderSystem(`${data.userId} 加入了房间`);
+          toast(`${data.userId} 加入了房间`);
+          break;
+        case "userLeft":
+          renderSystem(`${data.userId} 离开了房间`);
+          break;
+        case "userKicked":
+          renderSystem(`${data.userId} 被移出房间`);
+          break;
+        case "userBlacklisted":
+          renderSystem(`${data.userId} 已被拉黑`);
+          break;
+        case "ownerChanged":
+          ownerId = data.ownerId;
+          renderSystem(`房主已转让给 ${data.ownerId}`);
+          refreshOwnerUI();
+          break;
+        case "kicked":
+          manualClose = true; clearSession(); alert(data.message || "你已被移出房间"); location.reload();
+          break;
+        case "blacklisted":
+          manualClose = true; clearSession(); alert(data.message || "你已被拉黑"); location.reload();
+          break;
+        // ---- 文件：上传回执 / 下载分片 ----
+        case "fileUploaded":        onFileUploaded(data); break;
+        case "fileUploadError":     onFileUploadError(data); break;
+        case "fileDownloadStart":   onFileDownloadStart(data); break;
+        case "fileDownloadChunk":   onFileDownloadChunk(data); break;
+        case "fileDownloadEnd":     onFileDownloadEnd(data); break;
+        case "fileDownloadError":   onFileDownloadError(data); break;
+        case "error":
+          console.warn("服务器错误:", data.message);
+          toast(data.message || "发生错误", true);
+          break;
+      }
+    }
+
+    function handleJoinError(data) {
+      // 错误码：1001 口令错误 / 1002 房间已关闭 / 1003 已被拉黑 / 1004 密码错误 / 1005 昵称被占用
+      const map = { 1001: "口令错误", 1002: "房间已关闭", 1003: "你已被该房间拉黑", 1004: "房间密码错误", 1005: "该昵称已被占用，请换一个昵称" };
+      const text = data.message || map[data.code] || "加入失败";
+      joinErr.textContent = text;
+      // 密码错误：保持连接，让用户重新输入密码再试
+      if (data.code === 1004) {
+        password = "";
+        awaitingPassword = true;
+        pwInput.value = "";
+        pwInput.style.display = "block";
+        pwInput.focus();
+        joinBtn.textContent = "确认密码并进入";
+        return;
+      }
+      clearSession();
+      manualClose = true; // 阻止自动重连
+      try { ws.close(); } catch {}
+      // 昵称被占用：聚焦昵称框，提示用户改名后重新进入
+      if (data.code === 1005) {
+        awaitingPassword = false;
+        joinBtn.textContent = "进入房间";
+        nameInput.focus();
+        nameInput.select();
+      }
+    }
+
+    // 生成 32 字节随机盐（十六进制），仅在本地新建房间时使用
+    function genSaltHex() {
+      return CryptoJS.lib.WordArray.random(32).toString(CryptoJS.enc.Hex);
+    }
+
+    let iJustChangedPassword = false; // 标记本端是房主且刚改过密码，避免被自己的广播再次弹窗
+
+    // 刷新顶栏密钥指纹显示
+    function updateFingerprint() {
+      const fp = currentFingerprint();
+      keyFp.textContent = fp ? "🔒 " + fp : "";
+    }
+
+    // 第一段握手响应：决定建房 / 加入，并在本地派生密钥后发送 join
+    function handleRoomInfo(data) {
+      if (!data.exists) {
+        // 房间不存在：本端作为房主新建房间（默认无密码，密码后续在设置里加）
+        pendingNewRoom = true;
+        roomSalt = genSaltHex();
+        roomSettings.hasPassword = false;
+        password = "";
+      } else {
+        pendingNewRoom = false;
+        roomSalt = data.salt || "";
+        roomSettings.hasPassword = !!data.hasPassword;
+        // 房间已加密但还没填密码 -> 在首页显示密码框，等待用户输入后再 join
+        if (data.hasPassword && !password) {
+          awaitingPassword = true;
+          pwInput.style.display = "block";
+          pwInput.focus();
+          joinErr.textContent = "该房间已加密，请输入房间密码";
+          joinBtn.textContent = "确认密码并进入";
+          return; // 暂停，等用户点按钮触发 resumeJoin
+        }
+      }
+      sendJoinPayload();
+    }
+
+    // 本地派生密钥集并发送第二段握手 join
+    function sendJoinPayload() {
+      setupKeys();
+      const payload = { type: "join", roomCode, userId, token: sessionToken };
+      if (pendingNewRoom) payload.salt = roomSalt;
+      if (roomSettings.hasPassword) payload.authHash = authHash(roomSalt, password);
+      send(payload);
+    }
+
+    // 房主改/取消密码后：
+    //   - 设密码：当前加密密钥切换为【密码密钥】，此后新消息真端到端，服务器无法解密；
+    //     已在房成员通过旧密钥解开房主下发的密码密文，自动填入并切换密钥，全程无弹窗；
+    //   - 取消密码：当前密钥切回【口令密钥】；历史密码密钥仍保留，旧消息照常可解。
+    function onPasswordChanged(data) {
+      if (iJustChangedPassword) {
+        iJustChangedPassword = false;
+        if (roomSettings.hasPassword) {
+          addKey(password); // 切换到密码密钥加密后续消息
+          renderSystem("房间密码已设置（已自动同步给在房成员，后续消息端到端加密）");
+        } else {
+          addKey(roomCode); // 取消密码：回到口令密钥（保留历史密钥解旧消息）
+          renderSystem("房间密码已取消");
+        }
+        return;
+      }
+      if (roomSettings.hasPassword) {
+        // 用当前(旧)密钥解开房主下发的密码密文，自动填入并切换到密码密钥（无弹窗）
+        if (data && typeof data.encPassword === "string") {
+          const pw = aesDecrypt(data.encPassword);
+          if (pw && pw.indexOf("[无法解密") !== 0) {
+            password = pw;
+            pwInput.value = pw;
+            addKey(pw);
+            saveSession();
+          }
+        }
+        renderSystem("房主已设置房间密码，已自动为你同步（后续消息端到端加密）");
+      } else {
+        password = "";
+        pwInput.value = "";
+        addKey(roomCode);
+        saveSession();
+        renderSystem("房主已取消房间密码");
+      }
+    }
+
+    // =========================================================================
+    // 渲染：进入房间 / 消息 / 系统提示 / 用户列表
+    // =========================================================================
+    function enterRoom() {
+      joinModal.style.display = "none";
+      app.style.display = "flex";
+      roomNo.textContent = roomCode;
+      msgInput.focus();
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+
+    function timeStr(ts) {
+      const d = new Date(ts || Date.now());
+      return d.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+    }
+
+    function scrollToBottom() { messagesEl.scrollTop = messagesEl.scrollHeight; }
+
+    // 已渲染消息 ID 集合，用于本地回显与服务器广播去重（避免自己的消息显示两条）
+    const seenMsgIds = new Set();
+
+    // 渲染一条聊天消息
+    // isPlain=true 表示 content 已是明文（本地回显）；否则视为密文需 AES 解密
+    function renderMessage(m, isPlain) {
+      // 去重：本地已回显过的消息，服务器广播回来时跳过
+      if (m.msgId) {
+        if (seenMsgIds.has(m.msgId)) return;
+        seenMsgIds.add(m.msgId);
+      }
+      // 文件消息：渲染成带下载按钮的卡片
+      if (m.kind === "file") return renderFileMessage(m);
+      const isSelf = m.senderId === selfId;
+      const text = isPlain ? m.content : aesDecrypt(m.content);
+      const row = document.createElement("div");
+      row.className = "bubble-row" + (isSelf ? " self" : "");
+      row.innerHTML =
+        `<div class="meta">${escapeHtml(m.senderName || m.senderId)} · ${timeStr(m.timestamp)}</div>` +
+        `<div class="bubble">${escapeHtml(text)}</div>`;
+      messagesEl.appendChild(row);
+      scrollToBottom();
+    }
+
+    // 渲染系统提示
+    function renderSystem(text) {
+      const el = document.createElement("div");
+      el.className = "sys";
+      el.textContent = text;
+      messagesEl.appendChild(el);
+      scrollToBottom();
+      return el;
+    }
+
+    // 渲染用户列表（房主显示 👑；自己是房主时其他用户旁显示操作菜单）
+    function renderUserList() {
+      const iAmOwner = selfId === ownerId;
+      userListEl.innerHTML = "";
+      users.forEach((u) => {
+        const item = document.createElement("div");
+        item.className = "user";
+        const crown = u.isOwner ? "👑 " : "";
+        const meText = u.id === selfId ? "（我）" : "";
+        let html =
+          `<div class="uname"><span class="dot"></span>` +
+          `<span class="txt">${crown}${escapeHtml(u.name)}${meText}</span></div>`;
+        // 房主对其他人显示操作按钮
+        if (iAmOwner && u.id !== selfId) {
+          html += `<button class="menu-btn" data-uid="${escapeHtml(u.id)}">⋮</button>`;
+        }
+        item.innerHTML = html;
+        userListEl.appendChild(item);
+      });
+    }
+
+    // 弹出房主操作菜单
+    function openMenu(btn, uid) {
+      closeMenu();
+      const menu = document.createElement("div");
+      menu.className = "menu";
+      menu.innerHTML =
+        `<div data-act="transfer">转让房主</div>` +
+        `<div data-act="kick" class="danger">踢出</div>` +
+        `<div data-act="blacklist" class="danger">拉黑</div>`;
+      btn.parentElement.appendChild(menu);
+      menu.addEventListener("click", (e) => {
+        const act = e.target.getAttribute("data-act");
+        if (!act) return;
+        if (act === "kick") send({ type: "kick", targetId: uid });
+        else if (act === "blacklist") send({ type: "blacklist", targetId: uid, action: "add" });
+        else if (act === "transfer") {
+          if (confirm(`确认将房主转让给 ${uid}？`)) send({ type: "transfer", targetId: uid });
+        }
+        closeMenu();
+      });
+    }
+    function closeMenu() {
+      document.querySelectorAll(".menu").forEach((m) => m.remove());
+    }
+
+    // =========================================================================
+    // 文件传输（上传到房间 -> 文件消息进历史 -> 任何人按需下载）
+    // 文件用房间密钥 AES 加密后上传，服务器只存密文、无法解密；后加入者也能下载。
+    // =========================================================================
+    // 人类可读的文件大小
+    function humanSize(bytes) {
+      if (bytes < 1024) return bytes + " B";
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+      return (bytes / 1024 / 1024).toFixed(1) + " MB";
+    }
+
+    // 渲染一条文件消息气泡（带下载按钮），返回相关 DOM 引用
+    function renderFileMessage(m) {
+      const isSelf = m.senderId === selfId;
+      const row = document.createElement("div");
+      row.className = "bubble-row" + (isSelf ? " self" : "");
+      row.innerHTML =
+        `<div class="meta">${escapeHtml(m.senderName || m.senderId)} · ${timeStr(m.timestamp)}</div>` +
+        `<div class="bubble"><div class="file-card">` +
+        `<div class="ficon">📄</div>` +
+        `<div class="finfo">` +
+        `<div class="fname">${escapeHtml(m.fileName)}</div>` +
+        `<div class="fsize">${humanSize(m.fileSize)}<span class="fstat"></span></div>` +
+        `<div class="fprog" style="display:none;"><i style="width:0%"></i></div>` +
+        `</div>` +
+        `<button class="fbtn">下载</button>` +
+        `</div></div>`;
+      messagesEl.appendChild(row);
+      scrollToBottom();
+      const btn = row.querySelector(".fbtn");
+      const stat = row.querySelector(".fstat");
+      const prog = row.querySelector(".fprog");
+      const progBar = row.querySelector(".fprog > i");
+      btn.addEventListener("click", () => downloadFile(m, { btn, stat, prog, progBar }));
+      return { btn, stat, prog, progBar };
+    }
+
+    // ---- 发送端：选择文件 -> 加密分片上传到房间 ----
+    attachBtn.addEventListener("click", () => {
+      if (!joined) return;
+      fileInput.click();
+    });
+
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files && fileInput.files[0];
+      fileInput.value = ""; // 允许重复选择同一文件
+      if (!file) return;
+      if (file.size > MAX_FILE_SIZE) { toast("文件超过 30MB 上限", true); return; }
+      uploadFile(file);
+    });
+
+    async function uploadFile(file) {
+      const fileId = selfId + "-" + (++fileSeq) + "-" + Date.now();
+      // 本地保留原文件，发送者点自己的消息可直接下载，无需回源
+      sendingFiles.set(fileId, { file });
+      // 顶部临时提示上传进度（消息气泡待服务器广播后统一渲染）
+      const tip = renderSystem(`正在上传 ${file.name} … 0%`);
+      try {
+        const chunkSize = chunkSizeFor(file.size);
+        const chunks = Math.ceil(file.size / chunkSize) || 1;
+        send({ type: "fileUploadStart", fileMeta: { fileId, name: file.name, size: file.size, chunks } });
+        for (let i = 0; i < chunks; i++) {
+          const start = i * chunkSize;
+          const blob = file.slice(start, Math.min(start + chunkSize, file.size));
+          const buf = await blob.arrayBuffer();
+          const data = encryptChunk(buf);
+          send({ type: "fileUploadChunk", fileId, chunkIndex: i, data });
+          const pct = Math.round(((i + 1) / chunks) * 100);
+          if (tip) tip.textContent = `正在上传 ${file.name} … ${pct}%`;
+          await new Promise((r) => setTimeout(r, 0));
+        }
+        send({ type: "fileUploadEnd", fileId, timestamp: Date.now() });
+      } catch (err) {
+        toast("文件发送失败：" + (err && err.message ? err.message : "未知错误"), true);
+        sendingFiles.delete(fileId);
+      } finally {
+        if (tip) tip.remove();
+      }
+    }
+
+    function onFileUploaded() { /* 上传完成回执：文件消息会通过广播到达，无需额外处理 */ }
+    function onFileUploadError(data) {
+      toast(data.message || "文件上传失败", true);
+    }
+
+    // ---- 下载：本地有原件直接存；否则向服务器请求密文分片再解密 ----
+    function downloadFile(m, ui) {
+      // 发送者本地缓存了原文件，直接下载
+      const local = sendingFiles.get(m.fileId);
+      if (local && local.file) {
+        triggerDownload(URL.createObjectURL(local.file), m.fileName);
+        return;
+      }
+      if (downloadingFiles.has(m.fileId)) return; // 正在下载
+      ui.btn.disabled = true;
+      ui.btn.textContent = "下载中";
+      ui.prog.style.display = "block";
+      downloadingFiles.set(m.fileId, { meta: m, parts: new Array(m.chunks), received: 0, ui });
+      send({ type: "fileDownload", fileId: m.fileId });
+    }
+
+    function triggerDownload(url, name) {
+      const a = document.createElement("a");
+      a.href = url; a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+
+    function onFileDownloadStart(data) {
+      const d = downloadingFiles.get(data.fileId);
+      if (d) d.parts = new Array(data.chunks);
+    }
+    function onFileDownloadChunk(data) {
+      const d = downloadingFiles.get(data.fileId);
+      if (!d) return;
+      try {
+        d.parts[data.chunkIndex] = decryptChunk(data.data);
+        d.received++;
+      } catch {
+        if (d.ui.stat) d.ui.stat.textContent = " · 解密失败（密码不一致）";
+        return;
+      }
+      const pct = Math.round((d.received / d.meta.chunks) * 100);
+      if (d.ui.progBar) d.ui.progBar.style.width = pct + "%";
+    }
+    function onFileDownloadEnd(data) {
+      const d = downloadingFiles.get(data.fileId);
+      if (!d) return;
+      downloadingFiles.delete(data.fileId);
+      d.ui.btn.disabled = false;
+      d.ui.btn.textContent = "下载";
+      d.ui.prog.style.display = "none";
+      const blob = new Blob(d.parts, { type: "application/octet-stream" });
+      triggerDownload(URL.createObjectURL(blob), d.meta.fileName);
+    }
+    function onFileDownloadError(data) {
+      const d = downloadingFiles.get(data.fileId);
+      if (d) {
+        d.ui.btn.disabled = false;
+        d.ui.btn.textContent = "下载";
+        d.ui.prog.style.display = "none";
+        downloadingFiles.delete(data.fileId);
+      }
+      toast(data.message || "文件下载失败", true);
+    }
+
+    // =========================================================================
+    // 事件绑定
+    // =========================================================================
+    // 入房按钮
+    joinBtn.addEventListener("click", doJoin);
+    nameInput.addEventListener("keydown", (e) => { if (e.key === "Enter") doJoin(); });
+
+    // ---- 六位口令方格输入：自动跳转 / 退格回退 / 支持粘贴 ----
+    function getCode() { return codeBoxes.map((b) => b.value).join(""); }
+    codeBoxes.forEach((box, idx) => {
+      box.addEventListener("input", () => {
+        // 仅保留数字
+        box.value = box.value.replace(/\D/g, "").slice(0, 1);
+        box.classList.toggle("filled", !!box.value);
+        if (box.value && idx < codeBoxes.length - 1) codeBoxes[idx + 1].focus();
+        if (getCode().length === 6) nameInput.focus();
+      });
+      box.addEventListener("keydown", (e) => {
+        if (e.key === "Backspace" && !box.value && idx > 0) {
+          codeBoxes[idx - 1].focus();
+          codeBoxes[idx - 1].value = "";
+          codeBoxes[idx - 1].classList.remove("filled");
+          e.preventDefault();
+        } else if (e.key === "Enter" && getCode().length === 6) {
+          nameInput.focus();
+        }
+      });
+      box.addEventListener("paste", (e) => {
+        e.preventDefault();
+        const digits = (e.clipboardData.getData("text") || "").replace(/\D/g, "").slice(0, 6);
+        if (!digits) return;
+        for (let i = 0; i < 6; i++) {
+          codeBoxes[i].value = digits[i] || "";
+          codeBoxes[i].classList.toggle("filled", !!digits[i]);
+        }
+        (codeBoxes[Math.min(digits.length, 5)]).focus();
+        if (digits.length === 6) nameInput.focus();
+      });
+    });
+    function doJoin() {
+      // 已加密房间二次确认密码：直接用已建立的连接继续 join，无需重连
+      if (awaitingPassword) {
+        const pw = pwInput.value;
+        if (!pw) { joinErr.textContent = "请输入房间密码"; return; }
+        password = pw;
+        awaitingPassword = false;
+        joinErr.textContent = "";
+        sendJoinPayload();
+        return;
+      }
+      const code = getCode().trim();
+      const name = nameInput.value.trim();
+      joinErr.textContent = "";
+      if (!/^\d{6}$/.test(code)) { joinErr.textContent = "口令必须为 6 位数字"; return; }
+      if (!name) { joinErr.textContent = "请输入昵称"; return; }
+      roomCode = code; userId = name;
+      password = "";  // 密码仅在加入已加密房间时再要求，默认空
+      manualClose = false;
+      connect();
+    }
+
+    // 发送消息：前端 AES 加密后发送密文；本地立即回显（带 msgId，服务器广播回来时去重）
+    function sendMessage() {
+      const text = msgInput.value.trim();
+      if (!text) return;
+      const cipher = aesEncrypt(text);
+      const msgId = genMsgId();
+      const msg = { type: "message", msgId, content: cipher, senderId: selfId, senderName: userId, timestamp: Date.now() };
+      send(msg);
+      // 本地立即回显（明文，免再次解密），并登记 msgId 以便去重
+      renderMessage({ ...msg, content: text }, true);
+      msgInput.value = "";
+      autoGrow();
+    }
+    sendBtn.addEventListener("click", sendMessage);
+    // Enter 发送，Shift+Enter 换行
+    msgInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    });
+    // 输入框随内容自动增高（上限由 CSS max-height 控制）
+    function autoGrow() {
+      msgInput.style.height = "auto";
+      msgInput.style.height = Math.min(msgInput.scrollHeight, 120) + "px";
+    }
+    msgInput.addEventListener("input", autoGrow);
+
+    // 退出
+    exitBtn.addEventListener("click", () => {
+      manualClose = true;
+      clearSession();
+      try { ws.close(); } catch {}
+      location.reload();
+    });
+
+    // 用户列表菜单（事件委托）
+    userListEl.addEventListener("click", (e) => {
+      const btn = e.target.closest(".menu-btn");
+      if (btn) { e.stopPropagation(); openMenu(btn, btn.getAttribute("data-uid")); }
+    });
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".menu") && !e.target.closest(".menu-btn")) closeMenu();
+    });
+
+    // 移动端侧边栏开关
+    menuToggle.addEventListener("click", () => { sidebar.classList.add("open"); sidebarMask.classList.add("open"); });
+    sidebarMask.addEventListener("click", () => { sidebar.classList.remove("open"); sidebarMask.classList.remove("open"); });
+
+    // =========================================================================
+    // 房主控制面板
+    // =========================================================================
+    // 根据身份/设置刷新 UI：仅房主显示设置按钮，并同步面板状态
+    function refreshOwnerUI() {
+      const iAmOwner = selfId === ownerId;
+      settingsBtn.style.display = iAmOwner ? "inline-block" : "none";
+      allowJoinToggle.checked = !!roomSettings.allowJoin;
+      pwStatus.textContent = "当前：" + (roomSettings.hasPassword ? "已设置密码" : "无密码");
+      renderUserList();
+    }
+
+    // 打开 / 关闭面板
+    settingsBtn.addEventListener("click", () => {
+      allowJoinToggle.checked = !!roomSettings.allowJoin;
+      pwStatus.textContent = "当前：" + (roomSettings.hasPassword ? "已设置密码" : "无密码");
+      newPwInput.value = "";
+      panelModal.style.display = "flex";
+    });
+    closePanelBtn.addEventListener("click", () => { panelModal.style.display = "none"; });
+
+    // 切换"允许加入"开关
+    allowJoinToggle.addEventListener("change", () => {
+      send({ type: "updateSettings", allowJoin: allowJoinToggle.checked });
+    });
+
+    // 保存（修改/设置）密码：
+    //   - authHash=SHA-256(盐+新密码) 供服务器做入房门禁校验（明文不出本地）；
+    //   - encPassword=用房间密钥 AES 加密的明文密码，供已在房成员自动解密填入（服务器看不到明文）。
+    savePwBtn.addEventListener("click", () => {
+      const pw = newPwInput.value;
+      if (!pw) { alert("请输入新密码，或点击\"取消密码\""); return; }
+      password = pw;
+      pwInput.value = pw;
+      iJustChangedPassword = true;
+      saveSession();
+      send({ type: "updateSettings", password: {
+        action: "set",
+        authHash: authHash(roomSalt, pw),
+        encPassword: aesEncrypt(pw),
+      } });
+      newPwInput.value = "";
+      alert("密码已设置（已自动同步给房间内成员，新加入的用户需要输入）");
+    });
+
+    // 取消密码：之后新人无需密码即可加入
+    clearPwBtn.addEventListener("click", () => {
+      password = "";
+      iJustChangedPassword = true;
+      send({ type: "updateSettings", password: { action: "clear" } });
+      newPwInput.value = "";
+      alert("密码已取消");
+    });
+
+    // 自动聚焦口令第一格
+    if (codeBoxes[0]) codeBoxes[0].focus();
+    // 刷新后尝试自动重入（保住房主身份；宽限期内重连不会丢房主）
+    restoreSession();
+
+    // 主动注销可能存在的旧 Service Worker 并清空缓存：
+    // 聊天室是实时应用，离线缓存收益很小，却会缓存旧版页面导致新旧协议/加密格式不一致
+    // （表现为：进房慢、看不到别人消息、列表不更新）。这里确保每次都加载最新版。
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistrations().then((regs) => {
+        regs.forEach((r) => r.unregister());
+      }).catch(() => {});
+    }
+    if (window.caches && caches.keys) {
+      caches.keys().then((keys) => keys.forEach((k) => caches.delete(k))).catch(() => {});
+    }
+  })();
+  </script>
+
+
+</body>
+</html>
