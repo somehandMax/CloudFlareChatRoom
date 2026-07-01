@@ -106,6 +106,9 @@ wrangler dev
 
 默认在 `http://localhost:8787` 启动，并自动以本地模拟方式提供 KV 与 Durable Objects。
 
+##微信自定义域名申请恢复访问
+你可以在worker.js里的656~660行修改验证文件标题和内容，就能够验证通过
+
 ## 安全模型说明
 
 - **真端到端加密**取决于是否设置房间密码：
@@ -122,6 +125,7 @@ wrangler dev
 ##致谢
 
 Vibe Coding大将军Claude Opus4.8，营中军师写提示词DeepSeek v4Pro，军队Trae（cc太难折腾了），残废主公我自己
+原始仓库https://github.com/yeeyrr/Cloudflare-Workers-Chat，我给这个仓库进行二次改写，感谢大佬
 
 ## 许可
 
