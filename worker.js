@@ -655,9 +655,9 @@ export default {
 
     // 微信域名安全验证：微信要求在网站根目录放一个指定名称的 txt 文件并返回指定内容。
     // 本站是纯 Worker（无静态文件系统），故用路由返回该文件内容。
-    // 如日后微信要求更换文件名/内容，只需修改这两个常量即可。
-    const WECHAT_VERIFY_FILE = "692809c239bb348430f0cbbadbbacf93.txt";
-    const WECHAT_VERIFY_CONTENT = "a428cf1e0f077b682473d23ad24b7d8e438667cc";
+    // 如果你想要让你的自定义域名可以在微信上访问要过验证，可以修改下面
+    const WECHAT_VERIFY_FILE = "文件标题";//文件标题
+    const WECHAT_VERIFY_CONTENT = "文件内容";//文件内容
     if (url.pathname === "/" + WECHAT_VERIFY_FILE) {
       return new Response(WECHAT_VERIFY_CONTENT, {
         headers: { "Content-Type": "text/plain;charset=UTF-8", "Cache-Control": "no-cache" },
