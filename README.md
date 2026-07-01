@@ -119,6 +119,10 @@ wrangler dev
 
 在 Cloudflare 控制台 → Workers & Pages → 你的 Worker → Settings → Domains & Routes 绑定自有域名即可。
 
+##致谢
+
+Vibe Coding大将军Claude Opus4.8，营中军师写提示词DeepSeek v4Pro，军队Trae（cc太难折腾了），残废主公我自己
+
 ## 许可
 
 本项目以 MIT License 开源，欢迎自由使用与二次开发。
