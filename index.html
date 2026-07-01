@@ -63,7 +63,7 @@
     .modal input {
       width: 100%;
       background: var(--panel-2);
-      border: 1px solid #313644;
+      border: 1px solid var(--border);
       border-radius: 10px;
       padding: 12px 14px;
       color: var(--text);
@@ -104,19 +104,14 @@
       display: flex; align-items: center; justify-content: space-between;
       padding: 12px 16px;
       background: var(--panel);
-      border-bottom: 1px solid #262a36;
+      border-bottom: 1px solid var(--border);
       flex: 0 0 auto;
     }
     .topbar .room-no { font-size: 16px; font-weight: 600; }
     .topbar .room-no span { color: var(--accent); }
-    .topbar .fp {
-      margin-left: 10px; font-size: 12px; color: var(--muted);
-      font-family: monospace; padding: 2px 8px; border-radius: 6px;
-      background: var(--panel-2); border: 1px solid #313644; cursor: help;
-    }
     .topbar .exit {
       background: var(--panel-2); color: var(--text);
-      border: 1px solid #313644; border-radius: 8px;
+      border: 1px solid var(--border-2); border-radius: 8px;
       padding: 7px 14px; font-size: 13px; cursor: pointer;
     }
     /* 主体：左侧用户列表 + 右侧消息区 */
@@ -125,7 +120,7 @@
     .sidebar {
       flex: 0 0 200px;
       background: var(--panel);
-      border-right: 1px solid #262a36;
+      border-right: 1px solid var(--border);
       overflow-y: auto;
       padding: 10px;
     }
@@ -158,6 +153,14 @@
     .chat { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; position: relative; }
     .messages { flex: 1 1 auto; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
     .sys { text-align: center; color: var(--muted); font-size: 12px; }
+
+    /* 解密失败恢复按钮（内联在消息气泡中） */
+    .btn-decrypt-recover {
+      display: inline; font-size: 12px; color: var(--primary);
+      background: none; border: none; cursor: pointer; padding: 0;
+      text-decoration: underline; margin-left: 4px;
+    }
+    .btn-decrypt-recover:hover { opacity: .7; }
     .bubble-row { display: flex; flex-direction: column; max-width: 75%; align-items: flex-start; }
     .bubble-row.self { align-self: flex-end; align-items: flex-end; }
     .bubble-row .meta { font-size: 11px; color: var(--muted); margin-bottom: 3px; padding: 0 4px; }
@@ -168,14 +171,34 @@
     }
     .bubble-row.self .bubble { background: var(--bubble-self); color: #fff; }
 
+    /* 消息上下文菜单 */
+    .bubble-row .ctx-btn {
+      display: none; position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+      background: var(--panel-2); border: 1px solid var(--border-2); border-radius: 6px;
+      color: var(--muted); font-size: 16px; cursor: pointer; padding: 2px 8px;
+      line-height: 1; z-index: 2;
+    }
+    .bubble-row:hover .ctx-btn { display: inline-block; }
+    .ctx-menu {
+      position: absolute; right: 0; top: 100%; margin-top: 4px;
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.3);
+      z-index: 10; min-width: 90px; overflow: hidden;
+    }
+    .ctx-menu > div {
+      padding: 8px 14px; font-size: 13px; cursor: pointer; white-space: nowrap;
+    }
+    .ctx-menu > div:hover { background: var(--panel-2); }
+    .ctx-menu > div.danger { color: var(--danger); }
+
     /* 底部输入框 */
     .composer {
       flex: 0 0 auto; display: flex; gap: 8px; padding: 12px;
-      background: var(--panel); border-top: 1px solid #262a36;
+      background: var(--panel); border-top: 1px solid var(--border);
     }
     .composer input {
       flex: 1 1 auto; background: var(--panel-2);
-      border: 1px solid #313644; border-radius: 10px;
+      border: 1px solid var(--border-2); border-radius: 10px;
       padding: 11px 14px; color: var(--text); font-size: 15px; outline: none;
     }
     .composer input:focus { border-color: var(--accent); }
@@ -208,7 +231,6 @@
       /* 顶栏更紧凑，避免按钮挤出屏幕 */
       .topbar { padding: 10px 12px; }
       .topbar .room-no { font-size: 15px; }
-      .topbar .fp { margin-left: 6px; font-size: 11px; padding: 2px 6px; }
       .topbar .exit { padding: 6px 10px; font-size: 12px; }
       .icon-btn { padding: 6px 8px; }
       .topbar > div:last-child { gap: 6px !important; }
@@ -227,6 +249,8 @@
       .modal { padding: 22px 18px; }
       .toast-wrap { top: 10px; right: 10px; left: 10px; }
       .toast { max-width: none; }
+
+      .file-card .fbtn { font-size: 12px; padding: 6px 8px; }
     }
     .menu-toggle {
       display: none; background: var(--panel-2); color: var(--text);
@@ -235,12 +259,12 @@
     }
 
     /* ===== 控制面板 ===== */
-    .btn-ghost { background: var(--panel-2); border: 1px solid #313644; }
+    .btn-ghost { background: var(--panel-2); border: 1px solid var(--border-2); color: var(--text); }
     .panel-row {
       display: flex; align-items: center; justify-content: space-between;
       padding: 6px 0; font-size: 15px;
     }
-    .panel-sep { height: 1px; background: #2a2e3a; margin: 16px 0; }
+    .panel-sep { height: 1px; background: var(--border); margin: 16px 0; }
     .panel-label { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
     .panel-hint { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
     /* 开关 */
@@ -304,6 +328,9 @@
     .fprog > i { display: block; height: 100%; width: 0; background: #fff; transition: width .15s; }
     .bubble-row:not(.self) .fprog > i { background: var(--accent); }
 
+    /* ===== 按钮组紧凑排列 ===== */
+    .file-card .fbtn + .fbtn { margin-left: 6px; }
+
     /* ===== 输入区：附件按钮 + 多行 textarea ===== */
     .composer textarea {
       flex: 1 1 auto; background: var(--panel-2);
@@ -361,7 +388,6 @@
       <div style="display:flex;align-items:center;">
         <button class="menu-toggle" id="menuToggle">☰</button>
         <div class="room-no">房间号：<span id="roomNo"></span></div>
-        <span class="fp" id="keyFp" title="密钥指纹：与对方核对一致，可确认未被中间人篡改"></span>
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
         <button class="icon-btn" id="themeBtn" title="切换深色/浅色">🌙</button>
@@ -432,7 +458,7 @@
     const joinModal = $("joinModal"), nameInput = $("nameInput");
     const codeBoxes = Array.from(document.querySelectorAll("#codeBoxes .code-box"));
     const pwInput = $("pwInput"), joinErr = $("joinErr"), joinBtn = $("joinBtn");
-    const app = $("app"), roomNo = $("roomNo"), exitBtn = $("exitBtn"), keyFp = $("keyFp");
+    const app = $("app"), roomNo = $("roomNo"), exitBtn = $("exitBtn");
     const userListEl = $("userList"), messagesEl = $("messages");
     const msgInput = $("msgInput"), sendBtn = $("sendBtn"), statusBar = $("statusBar");
     const sidebar = $("sidebar"), sidebarMask = $("sidebarMask"), menuToggle = $("menuToggle");
@@ -477,15 +503,15 @@
     }
 
     // ---- 文件传输状态 ----
-    // 自适应分片：大文件用更大分片，减少分片条数与往返。
-    // 分片密文经 AES+Base64 膨胀约 1.37x，768KB -> 约 1.05MB 字符，低于服务端 1.5MB 单条上限。
+    // 自适应分片：大文件用更大分片，减少分片数与往返次数，提升传输效率。
+    // 编码膨胀公式：fp(8) + ":"(1) + ivHex(32) + ":"(1) + base64(padded) ≈ 42 + plainBytes × 1.34
+    // Cloudflare WebSocket 单帧上限约 1 MiB（1048576 字节），分片编码后必须小于该值。
+    //  700KB 明文 → 编码约 933KB ✓ 安全； 768KB 明文 → 编码约 1.00MB ✗ 临界于帧限。
     function chunkSizeFor(fileSize) {
-      // 注意：Cloudflare WebSocket 单帧上限约 1 MiB。分片经 AES + Base64 后体积约放大 1.4 倍，
-      // 故明文分片需控制在 ~512KB 以内（512KB -> 约 700KB 编码后），确保不超帧限导致静默丢帧。
-      if (fileSize <= 5 * 1024 * 1024) return 256 * 1024;   // ≤5MB：256KB
-      return 512 * 1024;                                    // 更大文件：512KB（编码后 ~700KB，安全）
+      if (fileSize <= 5 * 1024 * 1024)   return 256 * 1024;  // ≤5MB：    256KB（编码 ~349KB）
+      if (fileSize <= 50 * 1024 * 1024)  return 512 * 1024;  // 5-50MB：  512KB（编码 ~698KB）
+      return 700 * 1024;                                     // >50MB：   700KB（编码 ~933KB）
     }
-    const MAX_FILE_SIZE = 30 * 1024 * 1024; // 单文件上限 30MB（与服务端一致）
     const sendingFiles = new Map();      // fileId -> { file }（发送端本地原文件，自己下载免回源）
     const downloadingFiles = new Map();  // fileId -> { meta, parts:[], received, ui }（正在下载）
     let fileSeq = 0;                     // 本端文件序号，用于生成 fileId
@@ -523,7 +549,6 @@
     function addKey(secret) {
       const k = buildKey(secret);
       roomKeys = [k, ...roomKeys.filter((x) => x.fp !== k.fp)];
-      updateFingerprint();
       if (joined) saveSession();
     }
 
@@ -532,10 +557,6 @@
       roomKeys = [];
       addKey(roomCode);                                            // 口令基础密钥
       if (roomSettings.hasPassword && password) addKey(password);  // 密码密钥置顶（真 E2E）
-    }
-
-    function currentFingerprint() {
-      return roomKeys.length ? roomKeys[0].fp : "";
     }
 
     // 加密：输入 WordArray，输出 "fp:ivHex:密文Base64"（fp 为密钥指纹，供解密端直接选对密钥）
@@ -548,28 +569,51 @@
     }
 
     // 按指纹前缀选密钥后解密；返回明文 WordArray，失败返回 null
-    function decTry(cipher) {
+    // 注意：CryptoJS 的 AES-CBC 解密会【就地修改】传入的 iv 与 ciphertext WordArray，
+    // 因此多密钥尝试时必须为每次尝试克隆 iv/密文，否则第一次（错误密钥）会破坏数据，
+    // 导致后续用【正确密钥】也解不出 —— 这正是"密钥不一致或消息被篡改"的根因。
+    function decTry(cipher, opts) {
+      const wantUtf8 = !opts || opts.utf8 !== false; // 文本消息校验 UTF-8，二进制分片跳过
       const parts = String(cipher).split(":");
-      if (parts.length < 3) return null;
+      if (parts.length < 3) { logDecrypt("格式非法：分段不足", { cipher: String(cipher).slice(0, 24) }); return null; }
       const fp = parts[0];
-      let iv, ctWA;
-      try {
-        iv = CryptoJS.enc.Hex.parse(parts[1]);
-        ctWA = CryptoJS.enc.Base64.parse(parts[2]);
-      } catch { return null; }
-      // 优先用指纹匹配的密钥；匹配不到则回退尝试所有密钥（兼容性兜底）
+      const ivHex = parts[1], ctB64 = parts[2];
+      // 校验解析（仅解析一次以校验格式；实际解密时每次克隆，避免就地修改污染）
+      try { CryptoJS.enc.Hex.parse(ivHex); CryptoJS.enc.Base64.parse(ctB64); }
+      catch { logDecrypt("IV/密文解析失败", { fp }); return null; }
+
       const candidates = roomKeys.filter((k) => k.fp === fp);
       const tryKeys = candidates.length ? candidates : roomKeys;
+      if (!candidates.length) {
+        logDecrypt("指纹未匹配任何密钥，回退全量尝试", { fp, have: roomKeys.map((k) => k.fp) });
+      }
       for (const k of tryKeys) {
+        // 关键：每次尝试都重新解析（等价克隆）iv 与密文，隔离 CryptoJS 的就地修改
+        const iv = CryptoJS.enc.Hex.parse(ivHex);
+        const ctWA = CryptoJS.enc.Base64.parse(ctB64);
         try {
           const wa = CryptoJS.AES.decrypt(
-            CryptoJS.lib.CipherParams.create({ ciphertext: ctWA.clone() }),
+            CryptoJS.lib.CipherParams.create({ ciphertext: ctWA }),
             k.encKey, { iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 }
           );
-          if (wa && wa.sigBytes >= 0) return wa;
+          if (!wa || wa.sigBytes < 0) continue;
+          // 文本消息：额外用 UTF-8 可解性作为"正确密钥"判定，避免错误密钥碰巧通过填充校验返回乱码
+          if (wantUtf8) {
+            let text; try { text = wa.toString(CryptoJS.enc.Utf8); } catch { continue; }
+            if (!text) continue;
+            wa._utf8 = text; // 缓存，避免上层重复解码
+          }
+          return wa;
         } catch { /* 换下一个密钥 */ }
       }
+      logDecrypt("所有候选密钥均解密失败", { fp, tried: tryKeys.length });
       return null;
+    }
+
+    // 解密诊断日志：默认仅在控制台输出，便于追踪失败场景（可通过 window.__chatDebug 关闭）
+    function logDecrypt(reason, info) {
+      if (typeof window !== "undefined" && window.__chatDebug === false) return;
+      try { console.warn("[解密诊断]", reason, info || {}); } catch {}
     }
 
     // 文本消息加/解密
@@ -577,12 +621,18 @@
       if (!roomKeys.length) return plain;
       return encWith(roomKeys[0], CryptoJS.enc.Utf8.parse(plain));
     }
-    function aesDecrypt(cipher) {
+    function aesDecrypt(cipher, opts) {
       if (!roomKeys.length) return cipher;
-      const wa = decTry(cipher);
-      if (!wa) return "[无法解密：密钥不一致或消息被篡改]";
-      try { return wa.toString(CryptoJS.enc.Utf8) || "[无法解密：密钥不一致]"; }
-      catch { return "[无法解密：密钥不一致]"; }
+      const wantUtf8 = !opts || opts.utf8 !== false;
+      const wa = decTry(cipher, { utf8: wantUtf8 });
+      if (!wa) return renderDecryptError();
+      if (wantUtf8) {
+        // 优先使用 decTry 中缓存的 UTF-8 文本，避免重复解码
+        if (wa._utf8 !== undefined) return wa._utf8 || renderDecryptError();
+        try { return wa.toString(CryptoJS.enc.Utf8) || renderDecryptError(); }
+        catch { return renderDecryptError(); }
+      }
+      return wa;
     }
 
     // ---- 文件分片加解密（二进制 <-> WordArray，同样走认证加密） ----
@@ -590,7 +640,8 @@
       return encWith(roomKeys[0], CryptoJS.lib.WordArray.create(arrayBuffer));
     }
     function decryptChunk(cipher) {
-      const wa = decTry(cipher);
+      // 二进制分片：跳过 UTF-8 校验，仅依赖 PKCS7 填充正确性
+      const wa = decTry(cipher, { utf8: false });
       if (!wa) throw new Error("decrypt failed");
       return wordArrayToUint8(wa);
     }
@@ -604,6 +655,25 @@
       }
       return u8;
     }
+
+    // 解密失败：返回可点击的恢复按钮 HTML（点击后重新加入房间，重新派生密钥）
+    let _decryptFailCount = 0;
+    function renderDecryptError() {
+      _decryptFailCount++;
+      // 前 3 次解密失败：静默占位，避免短时波动刷屏
+      if (_decryptFailCount <= 3) return "[无法解密]";
+      return `[无法解密：密钥不一致或消息被篡改] <button class="btn-decrypt-recover" onclick="window._tryRejoin()">🔄 重新加入</button>`;
+    }
+    // 重新加入房间：清除 session + 重连，触发密钥重建
+    function tryRejoin() {
+      _decryptFailCount = 0;
+      sessionStorage.removeItem(STORAGE_KEY);
+      toast("正在重新加入房间…");
+      // 通过页面刷新触发完整的 join 流程，确保密钥重新派生
+      location.reload();
+    }
+    // 暴露到 window 供 inline onclick 调用
+    window._tryRejoin = tryRejoin;
 
     // ---- WebSocket 地址 ----
     // 仅在 HTTPS 下使用 wss；若线上误用 HTTP（非 localhost）则告警，避免明文传输被中间人窃听
@@ -721,8 +791,25 @@
     }
 
     // 切回前台时立即补一次心跳；若连接已断则立即重连，避免后台节流期间连接被判离线
+    // 同时强制刷新消息区显示（后台 WebSocket 消息虽被 DOM 处理，但浏览器可能不触发 layout/paint）
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState !== "visible" || !joined || manualClose) return;
+      // 强制同步所有消息气泡的内容（处理后台上 WS 消息已修改 DOM 但不 visible 的场景）
+      const rows = messagesEl.querySelectorAll(".bubble-row");
+      rows.forEach(row => {
+        if (row._msgData) {
+          const bubble = row.querySelector(".bubble");
+          const meta = row.querySelector(".meta");
+          if (bubble) bubble.textContent = row._msgData.content;
+          if (meta && row._msgData.editedTime && !meta.textContent.includes("已编辑")) {
+            meta.innerHTML += ` <span style="color:var(--muted);">（已编辑）</span>`;
+          }
+        }
+      });
+      // 强制重绘
+      void messagesEl.offsetHeight;
+      scrollToBottom();
+
       if (ws && ws.readyState === WebSocket.OPEN) {
         send({ type: "ping" });
       } else {
@@ -789,6 +876,12 @@
         case "message":
           renderMessage(data);
           break;
+        case "recall":
+          handleRecall(data);
+          break;
+        case "edit":
+          handleEdit(data);
+          break;
         case "userJoined":
           renderSystem(`${data.userId} 加入了房间`);
           toast(`${data.userId} 加入了房间`);
@@ -827,6 +920,52 @@
       }
     }
 
+    // 处理消息撤回
+    function handleRecall(data) {
+      // 遍历所有消息行找到对应 msgId 的行
+      const rows = messagesEl.querySelectorAll(".bubble-row");
+      for (const row of rows) {
+        if (row._msgData && row._msgData.msgId === data.msgId) {
+          const senderName = data.senderName || data.senderId;
+          row.innerHTML = `<div class="sys">${escapeHtml(senderName)} 撤回了一条消息</div>`;
+          row._msgData = null;
+          return;
+        }
+      }
+      // 文件消息行（无 _msgData）：遍历 file-card
+      const cards = messagesEl.querySelectorAll(".file-card");
+      for (const card of cards) {
+        const row = card.closest(".bubble-row");
+        if (row && row._fileMsgId === data.msgId) {
+          const senderName = data.senderName || data.senderId;
+          row.innerHTML = `<div class="sys">${escapeHtml(senderName)} 撤回了一条文件消息</div>`;
+          return;
+        }
+      }
+    }
+
+    // 处理消息编辑
+    function handleEdit(data) {
+      const rows = messagesEl.querySelectorAll(".bubble-row");
+      for (const row of rows) {
+        if (row._msgData && row._msgData.msgId === data.msgId) {
+          const newText = aesDecrypt(data.newContent);
+          const bubble = row.querySelector(".bubble");
+          if (bubble) {
+            const isDecryptErr = typeof newText === "string" && newText.startsWith("[无法解密");
+            bubble.innerHTML = isDecryptErr ? newText : escapeHtml(newText);
+          }
+          const meta = row.querySelector(".meta");
+          if (meta && !meta.querySelector("span")) {
+            meta.innerHTML += ` <span style="color:var(--muted);">（已编辑）</span>`;
+          }
+          row._msgData.content = newText;
+          row._msgData.editedTime = data.editTime;
+          return;
+        }
+      }
+    }
+
     function handleJoinError(data) {
       // 错误码：1001 口令错误 / 1002 房间已关闭 / 1003 已被拉黑 / 1004 密码错误 / 1005 昵称被占用
       const map = { 1001: "口令错误", 1002: "房间已关闭", 1003: "你已被该房间拉黑", 1004: "房间密码错误", 1005: "该昵称已被占用，请换一个昵称" };
@@ -860,12 +999,6 @@
     }
 
     let iJustChangedPassword = false; // 标记本端是房主且刚改过密码，避免被自己的广播再次弹窗
-
-    // 刷新顶栏密钥指纹显示
-    function updateFingerprint() {
-      const fp = currentFingerprint();
-      keyFp.textContent = fp ? "🔒 " + fp : "";
-    }
 
     // 第一段握手响应：决定建房 / 加入，并在本地派生密钥后发送 join
     function handleRoomInfo(data) {
@@ -977,9 +1110,24 @@
       const text = isPlain ? m.content : aesDecrypt(m.content);
       const row = document.createElement("div");
       row.className = "bubble-row" + (isSelf ? " self" : "");
-      row.innerHTML =
-        `<div class="meta">${escapeHtml(m.senderName || m.senderId)} · ${timeStr(m.timestamp)}</div>` +
-        `<div class="bubble">${escapeHtml(text)}</div>`;
+      row.style.position = "relative";
+      let metaHtml = `<div class="meta">${escapeHtml(m.senderName || m.senderId)} · ${timeStr(m.timestamp)}`;
+      if (m.editedTime) metaHtml += ` <span style="color:var(--muted);">（已编辑）</span>`;
+      metaHtml += `</div>`;
+      // 解密失败时 text 包含恢复按钮 HTML，需要 innerHTML 而非 escapeHtml
+      const isDecryptError = typeof text === "string" && text.startsWith("[无法解密");
+      let bubbleHtml = `<div class="bubble">${isDecryptError ? text : escapeHtml(text)}</div>`;
+      if (isSelf) {
+        bubbleHtml += `<button class="ctx-btn" title="更多操作">⋮</button>`;
+      }
+      row.innerHTML = metaHtml + bubbleHtml;
+      // 存储消息元数据到 DOM，供撤回/编辑使用
+      row._msgData = { ...m, content: text };
+      // 上下文菜单按钮
+      if (isSelf) {
+        const ctxBtn = row.querySelector(".ctx-btn");
+        ctxBtn.addEventListener("click", (e) => { e.stopPropagation(); openCtxMenu(row._msgData, row, ctxBtn); });
+      }
       messagesEl.appendChild(row);
       scrollToBottom();
     }
@@ -1041,6 +1189,110 @@
     }
 
     // =========================================================================
+    // 消息上下文菜单（撤回 / 编辑）
+    // =========================================================================
+    function closeCtxMenu() {
+      document.querySelectorAll(".ctx-menu").forEach((m) => m.remove());
+    }
+
+    function openCtxMenu(m, row, btn) {
+      closeCtxMenu();
+      const menu = document.createElement("div");
+      menu.className = "ctx-menu";
+      const age = Date.now() - m.timestamp;
+      const canRecall = age <= 2 * 60 * 1000; // 2 分钟内可撤回
+      menu.innerHTML =
+        `<div data-act="edit">编辑</div>` +
+        (canRecall ? `<div data-act="recall" class="danger">撤回</div>` : "");
+      menu.addEventListener("click", (e) => {
+        const act = e.target.getAttribute("data-act");
+        if (!act) return;
+        closeCtxMenu();
+        if (act === "recall") recallMessage(m, row);
+        else if (act === "edit") editMessage(m, row);
+      });
+      btn.parentElement.appendChild(menu);
+      // 点击其他地方关闭
+      setTimeout(() => {
+        document.addEventListener("click", function closeHandler(e) {
+          if (!e.target.closest(".ctx-menu") && !e.target.closest(".ctx-btn")) {
+            closeCtxMenu();
+            document.removeEventListener("click", closeHandler);
+          }
+        });
+        document.addEventListener("keydown", function escHandler(e) {
+          if (e.key === "Escape") { closeCtxMenu(); document.removeEventListener("keydown", escHandler); }
+        });
+      }, 0);
+    }
+
+    // 撤回消息
+    function recallMessage(m, row) {
+      const senderName = m.senderName || m.senderId;
+      // 立即本地替换为系统提示
+      row.innerHTML = `<div class="sys">${escapeHtml(senderName)} 撤回了一条消息</div>`;
+      row._msgData = null;
+      send({ type: "recall", msgId: m.msgId });
+    }
+
+    // 编辑消息
+    function editMessage(m, row) {
+      const bubble = row.querySelector(".bubble");
+      if (!bubble) return;
+      const oldText = m.content || "";
+      // 替换气泡为编辑框
+      bubble.innerHTML = "";
+      bubble.style.cssText = "padding:0;background:none;";
+      const ta = document.createElement("textarea");
+      ta.style.cssText = "width:100%;min-width:200px;min-height:40px;background:var(--panel-2);border:1px solid var(--accent);border-radius:8px;color:var(--text);font-size:14px;padding:8px;outline:none;resize:none;font-family:inherit;line-height:1.5;";
+      ta.value = oldText;
+      bubble.appendChild(ta);
+      // 操作按钮
+      const actBar = document.createElement("div");
+      actBar.style.cssText = "display:flex;gap:6px;margin-top:6px;";
+      actBar.innerHTML =
+        `<button class="btn" style="width:auto;padding:5px 12px;font-size:12px;">确认</button>` +
+        `<button class="btn btn-ghost" style="width:auto;padding:5px 12px;font-size:12px;">取消</button>`;
+      bubble.appendChild(actBar);
+      const confirmBtn = actBar.querySelector(".btn");
+      const cancelBtn = actBar.querySelector(".btn-ghost");
+      ta.focus();
+      ta.setSelectionRange(oldText.length, oldText.length);
+
+      function submit() {
+        const newText = ta.value.trim();
+        if (!newText || newText === oldText) { cancel(); return; }
+        submitEdit(m, row, newText, bubble);
+      }
+      function cancel() {
+        // 恢复原气泡
+        bubble.innerHTML = escapeHtml(oldText);
+        bubble.style.cssText = "";
+      }
+      confirmBtn.addEventListener("click", submit);
+      cancelBtn.addEventListener("click", cancel);
+      ta.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
+        if (e.key === "Escape") { e.preventDefault(); cancel(); }
+      });
+    }
+
+    function submitEdit(m, row, newText, bubbleEl) {
+      const cipher = aesEncrypt(newText);
+      const editTime = Date.now();
+      send({ type: "edit", msgId: m.msgId, newContent: cipher, editTime });
+      // 立即本地更新
+      bubbleEl.innerHTML = escapeHtml(newText);
+      bubbleEl.style.cssText = "";
+      const meta = row.querySelector(".meta");
+      if (meta && !meta.querySelector("span")) {
+        meta.innerHTML += ` <span style="color:var(--muted);">（已编辑）</span>`;
+      }
+      row._msgData.content = newText;
+      row._msgData.editedTime = editTime;
+    }
+
+    // =========================================================================
     // 文件传输（上传到房间 -> 文件消息进历史 -> 任何人按需下载）
     // 文件用房间密钥 AES 加密后上传，服务器只存密文、无法解密；后加入者也能下载。
     // =========================================================================
@@ -1051,30 +1303,71 @@
       return (bytes / 1024 / 1024).toFixed(1) + " MB";
     }
 
-    // 渲染一条文件消息气泡（带下载按钮），返回相关 DOM 引用
+    // 根据扩展名识别文件媒体类型
+    function getFileKind(fileName) {
+      const ext = (fileName || "").split(".").pop().toLowerCase();
+      if (/^(jpg|jpeg|png|gif|webp|svg|bmp|ico)$/.test(ext)) return "image";
+      if (/^(mp4|webm|ogg|mov|avi|mkv)$/.test(ext)) return "video";
+      return "other";
+    }
+
+    // 根据扩展名推断 MIME 类型
+    function mimeType(fileName) {
+      const ext = (fileName || "").split(".").pop().toLowerCase();
+      const map = {
+        jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", gif: "image/gif",
+        webp: "image/webp", svg: "image/svg+xml", bmp: "image/bmp", ico: "image/x-icon",
+        mp4: "video/mp4", webm: "video/webm", ogg: "video/ogg", mov: "video/quicktime",
+        avi: "video/x-msvideo", mkv: "video/x-matroska",
+      };
+      return map[ext] || "application/octet-stream";
+    }
+
+    // 渲染一条文件消息气泡，返回 UI 引用集合
     function renderFileMessage(m) {
+      const kind = getFileKind(m.fileName);
       const isSelf = m.senderId === selfId;
       const row = document.createElement("div");
       row.className = "bubble-row" + (isSelf ? " self" : "");
+
+      // 所有文件统一处理：仅显示图标 + 下载按钮，需下载后查看
+      let icon = "📄";
+      if (kind === "image") icon = "🖼";
+      else if (kind === "video") icon = "🎬";
+
       row.innerHTML =
         `<div class="meta">${escapeHtml(m.senderName || m.senderId)} · ${timeStr(m.timestamp)}</div>` +
         `<div class="bubble"><div class="file-card">` +
-        `<div class="ficon">📄</div>` +
+        `<div class="ficon">${icon}</div>` +
         `<div class="finfo">` +
         `<div class="fname">${escapeHtml(m.fileName)}</div>` +
         `<div class="fsize">${humanSize(m.fileSize)}<span class="fstat"></span></div>` +
         `<div class="fprog" style="display:none;"><i style="width:0%"></i></div>` +
         `</div>` +
-        `<button class="fbtn">下载</button>` +
+        `<button class="fbtn fbtn-dl">下载</button>` +
         `</div></div>`;
       messagesEl.appendChild(row);
       scrollToBottom();
-      const btn = row.querySelector(".fbtn");
-      const stat = row.querySelector(".fstat");
-      const prog = row.querySelector(".fprog");
-      const progBar = row.querySelector(".fprog > i");
-      btn.addEventListener("click", () => downloadFile(m, { btn, stat, prog, progBar }));
-      return { btn, stat, prog, progBar };
+
+      const ui = {
+         row,
+         icon: row.querySelector(".ficon"),
+         name: row.querySelector(".fname"),
+         stat: row.querySelector(".fstat"),
+         prog: row.querySelector(".fprog"),
+         progBar: row.querySelector(".fprog > i"),
+         btnDl: row.querySelector(".fbtn-dl"),
+         btn: row.querySelector(".fbtn-dl"),  // 兼容下载函数引用
+         kind,
+         meta: m,
+       };
+
+      // 下载按钮
+      ui.btnDl.addEventListener("click", () => downloadFile(m, ui));
+
+      // 存储 msgId 到行 DOM 供撤回查找
+      row._fileMsgId = m.msgId;
+      return ui;
     }
 
     // ---- 发送端：选择文件 -> 加密分片上传到房间 ----
@@ -1087,7 +1380,6 @@
       const file = fileInput.files && fileInput.files[0];
       fileInput.value = ""; // 允许重复选择同一文件
       if (!file) return;
-      if (file.size > MAX_FILE_SIZE) { toast("文件超过 30MB 上限", true); return; }
       uploadFile(file);
     });
 
@@ -1101,15 +1393,17 @@
         const chunkSize = chunkSizeFor(file.size);
         const chunks = Math.ceil(file.size / chunkSize) || 1;
         send({ type: "fileUploadStart", fileMeta: { fileId, name: file.name, size: file.size, chunks } });
+        let lastPct = -1;
         for (let i = 0; i < chunks; i++) {
           const start = i * chunkSize;
           const blob = file.slice(start, Math.min(start + chunkSize, file.size));
           const buf = await blob.arrayBuffer();
           const data = encryptChunk(buf);
           send({ type: "fileUploadChunk", fileId, chunkIndex: i, data });
+          // 背压控制：仅当 WebSocket 发送缓冲区超阈值时才等待其回落，避免逐分片强制让出导致移动端卡顿
+          await waitForDrain();
           const pct = Math.round(((i + 1) / chunks) * 100);
-          if (tip) tip.textContent = `正在上传 ${file.name} … ${pct}%`;
-          await new Promise((r) => setTimeout(r, 0));
+          if (tip && pct !== lastPct) { tip.textContent = `正在上传 ${file.name} … ${pct}%`; lastPct = pct; }
         }
         send({ type: "fileUploadEnd", fileId, timestamp: Date.now() });
       } catch (err) {
@@ -1120,25 +1414,78 @@
       }
     }
 
+    // WebSocket 背压：发送缓冲区超过阈值时等待其回落，弱网/大文件下平稳发送不堆积
+    function waitForDrain() {
+      const THRESHOLD = 1 * 1024 * 1024; // 1MB
+      if (!ws || ws.readyState !== WebSocket.OPEN) return Promise.resolve();
+      if (ws.bufferedAmount < THRESHOLD) return Promise.resolve();
+      return new Promise((resolve) => {
+        const check = () => {
+          if (!ws || ws.readyState !== WebSocket.OPEN || ws.bufferedAmount < THRESHOLD) resolve();
+          else setTimeout(check, 20);
+        };
+        check();
+      });
+    }
+
     function onFileUploaded() { /* 上传完成回执：文件消息会通过广播到达，无需额外处理 */ }
     function onFileUploadError(data) {
       toast(data.message || "文件上传失败", true);
     }
 
     // ---- 下载：本地有原件直接存；否则向服务器请求密文分片再解密 ----
+    // 两级策略：
+    //   1) 支持 File System Access API（Chrome/Edge）→ 边解密边写盘，内存恒定 O(chunk)
+    //   2) 不支持（Firefox/Safari）→ 分片冲刷 + 中间 Blob 合并：每攒满 50MB 就将已收分片
+    //      合并为一个中间 Blob 并清空数组，最终 new Blob([blob1,blob2,...]) 触发下载。
+    //      峰值内存 ≈ 50MB + 最终 Blob 开销，远低于全量数组方式。
+    const BLOB_FLUSH = 50 * 1024 * 1024; // 非流式下每 50MB 冲刷一次
+
     function downloadFile(m, ui) {
-      // 发送者本地缓存了原文件，直接下载
       const local = sendingFiles.get(m.fileId);
       if (local && local.file) {
         triggerDownload(URL.createObjectURL(local.file), m.fileName);
         return;
       }
-      if (downloadingFiles.has(m.fileId)) return; // 正在下载
+      if (downloadingFiles.has(m.fileId)) return;
       ui.btn.disabled = true;
-      ui.btn.textContent = "下载中";
+      ui.btn.textContent = "取消";
       ui.prog.style.display = "block";
-      downloadingFiles.set(m.fileId, { meta: m, parts: new Array(m.chunks), received: 0, ui });
-      send({ type: "fileDownload", fileId: m.fileId });
+
+      const entry = { meta: m, received: 0, ui, streaming: false, writable: null,
+                      buf: null, bufs: null, bufBytes: 0, cancelled: false };
+      downloadingFiles.set(m.fileId, entry);
+
+      // 点击取消
+      const origClick = ui.btn.onclick;
+      ui.btn.onclick = () => {
+        entry.cancelled = true;
+        if (entry.writable) entry.writable.abort().catch(() => {});
+        downloadingFiles.delete(m.fileId);
+        ui.btn.disabled = false;
+        ui.btn.textContent = "下载";
+        ui.prog.style.display = "none";
+        ui.btn.onclick = origClick;
+        toast("下载已取消");
+      };
+
+      const tryStreaming = (m.fileSize > 50 * 1024 * 1024) && typeof window.showSaveFilePicker === 'function';
+      const startReq = () => {
+        if (!entry.streaming) { entry.buf = []; entry.bufs = []; }
+        send({ type: "fileDownload", fileId: m.fileId });
+      };
+
+      if (tryStreaming) {
+        window.showSaveFilePicker({ suggestedName: m.fileName })
+          .then(async (handle) => {
+            entry.writable = await handle.createWritable();
+            entry.streaming = true;
+            startReq();
+          })
+          .catch(() => startReq()); // 取消/失败 → 回退（下方已有内存护盾）
+      } else {
+        startReq();
+      }
     }
 
     function triggerDownload(url, name) {
@@ -1147,39 +1494,85 @@
       document.body.appendChild(a); a.click(); a.remove();
     }
 
+    // 非流式：将已缓存分片冲刷为一个中间 Blob，清空缓冲以释放 Uint8Array 内存
+    function flushBuf(d) {
+      if (!d.buf || !d.buf.length) return;
+      const blob = new Blob(d.buf, { type: mimeType(d.meta.fileName) });
+      d.bufs.push(blob);
+      d.buf = [];     // 旧 Uint8Array 可被 GC
+      d.bufBytes = 0;
+    }
+
     function onFileDownloadStart(data) {
       const d = downloadingFiles.get(data.fileId);
-      if (d) d.parts = new Array(data.chunks);
+      if (!d) return;
+      if (!d.streaming) {
+        d.totalChunks = data.chunks;
+      }
     }
     function onFileDownloadChunk(data) {
       const d = downloadingFiles.get(data.fileId);
-      if (!d) return;
+      if (!d || d.cancelled) return;
       try {
-        d.parts[data.chunkIndex] = decryptChunk(data.data);
-        d.received++;
+        const decrypted = decryptChunk(data.data);
+        if (d.streaming && d.writable) {
+          d.writable.write(decrypted);
+        } else if (d.buf) {
+          d.buf.push(decrypted);
+          d.bufBytes += decrypted.byteLength;
+          d.received++;
+          // 攒满阈值则冲刷 → 新旧 Uint8Array 生命周期隔离，GC 可逐批回收
+          if (d.bufBytes >= BLOB_FLUSH) flushBuf(d);
+        }
       } catch {
         if (d.ui.stat) d.ui.stat.textContent = " · 解密失败（密码不一致）";
         return;
       }
-      const pct = Math.round((d.received / d.meta.chunks) * 100);
+      const total = d.totalChunks || d.meta.chunks;
+      const pct = Math.round((d.received / total) * 100);
       if (d.ui.progBar) d.ui.progBar.style.width = pct + "%";
     }
     function onFileDownloadEnd(data) {
       const d = downloadingFiles.get(data.fileId);
-      if (!d) return;
+      if (!d || d.cancelled) return;
       downloadingFiles.delete(data.fileId);
-      d.ui.btn.disabled = false;
-      d.ui.btn.textContent = "下载";
       d.ui.prog.style.display = "none";
-      const blob = new Blob(d.parts, { type: "application/octet-stream" });
-      triggerDownload(URL.createObjectURL(blob), d.meta.fileName);
+
+      if (d.streaming && d.writable) {
+        d.writable.close().catch(() => {});
+        toast("文件下载完成");
+        d.ui.btn.disabled = false;
+        d.ui.btn.textContent = "下载";
+        d.ui.btn.onclick = null;
+        return;
+      }
+
+      // 冲刷最后一批未满阈值的分片
+      flushBuf(d);
+      try {
+        const blob = new Blob(d.bufs, { type: mimeType(d.meta.fileName) });
+        const blobUrl = URL.createObjectURL(blob);
+        triggerDownload(blobUrl, d.meta.fileName);
+        d.ui.btn.disabled = false;
+        d.ui.btn.textContent = "下载";
+        d.ui.btn.onclick = null;
+      } catch (e) {
+        toast("文件过大，内存不足，请使用 Chrome/Edge 下载", true);
+        d.ui.btn.disabled = false;
+        d.ui.btn.textContent = "下载";
+        d.ui.btn.onclick = null;
+      }
+      // 协助 GC
+      d.buf = null; d.bufs = null;
     }
     function onFileDownloadError(data) {
       const d = downloadingFiles.get(data.fileId);
       if (d) {
+        d.ui.prog.style.display = "none";
         d.ui.btn.disabled = false;
         d.ui.btn.textContent = "下载";
-        d.ui.prog.style.display = "none";
+        d.ui.btn.onclick = null;
+        if (d.streaming && d.writable) d.writable.abort().catch(() => {});
         downloadingFiles.delete(data.fileId);
       }
       toast(data.message || "文件下载失败", true);
@@ -1362,6 +1755,73 @@
     if (window.caches && caches.keys) {
       caches.keys().then((keys) => keys.forEach((k) => caches.delete(k))).catch(() => {});
     }
+
+    // =========================================================================
+    // 加密自测套件：验证 AES 加解密、密钥派生、多密钥兼容的一致性
+    // 在控制台运行：window._runCryptoTests()  → 返回 { passed, total, results }
+    // =========================================================================
+    window._runCryptoTests = function () {
+      const results = [];
+      const pass = (name) => results.push({ name, ok: true });
+      const fail = (name, detail) => results.push({ name, ok: false, detail });
+
+      // 准备测试环境（不污染真实 roomKeys）
+      const saved = roomKeys.slice();
+      try {
+        const secret = "test-secret-123";
+        const salt = CryptoJS.lib.WordArray.random(16);
+        const key = buildKey(secret, salt);
+        addKey(key, "test");
+
+        const plain = "Hello World 你好世界 🔥";
+        const enc = encWith(key, CryptoJS.enc.Utf8.parse(plain));
+        // 测试 1: 正常加解密（指纹匹配）
+        const dec = decTry(enc, { utf8: true });
+        if (dec && dec._utf8 === plain) pass("正常加解密（指纹匹配）: " + plain);
+        else fail("正常加解密（指纹匹配）", { plain, dec: dec && dec._utf8 });
+
+        // 测试 2: 多密钥场景（先用错误密钥尝试，确认不会污染正确密钥解密）
+        const fakeKey = buildKey("wrong-secret", salt);
+        const savedKeys = roomKeys.slice();
+        roomKeys.unshift({ fp: fakeKey.fp, encKey: fakeKey.encKey }); // 错误密钥放最前面
+        const dec2 = decTry(enc, { utf8: true });
+        roomKeys = savedKeys;
+        if (dec2 && dec2._utf8 === plain) pass("多密钥解密（错误密钥在前，正确在后仍能解密）: " + plain);
+        else fail("多密钥解密", { plain, dec: dec2 && dec2._utf8 });
+
+        // 测试 3: 密钥不一致返回 null
+        roomKeys = [{ fp: "XXXX", encKey: fakeKey.encKey }];
+        const dec3 = decTry(enc, { utf8: true });
+        roomKeys = savedKeys;
+        if (dec3 === null) pass("密钥不一致返回 null");
+        else fail("密钥不一致应返回 null，实际: " + dec3);
+
+        // 测试 4: 篡改密文返回 null
+        const tampered = enc.slice(0, -4) + "XXXX";
+        const dec4 = decTry(tampered, { utf8: true });
+        if (dec4 === null) pass("篡改密文返回 null");
+        else fail("篡改密文应返回 null");
+
+        // 测试 5: 文件分片加解密（二进制）
+        const raw = new Uint8Array([0x00, 0xFF, 0x12, 0xAB, 0x00, 0x00]);
+        const chunkEnc = encryptChunk(raw.buffer);
+        const chunkDec = decryptChunk(chunkEnc);
+        if (chunkDec.length === raw.length && chunkDec.every((v, i) => v === raw[i]))
+          pass("文件分片加解密: " + raw.length + " bytes 完全一致");
+        else fail("文件分片加解密", { raw: Array.from(raw), dec: Array.from(chunkDec) });
+
+      } catch (e) {
+        fail("异常: " + e.message);
+      } finally {
+        roomKeys = saved;
+      }
+      const total = results.length;
+      const passed = results.filter((r) => r.ok).length;
+      console.table(results);
+      console.log((passed === total ? "✅" : "❌") + " 加密自测: " + passed + "/" + total + " 通过");
+      if (passed < total) console.warn("失败详情:", results.filter((r) => !r.ok));
+      return { passed, total, results };
+    };
   })();
   </script>
 
