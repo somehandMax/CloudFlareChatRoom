@@ -125,7 +125,6 @@ wrangler dev
 ##致谢
 
 Vibe Coding大将军Claude Opus4.8，营中军师写提示词DeepSeek v4Pro，军队Trae（cc太难折腾了），残废主公我自己
-原始仓库https://github.com/yeeyrr/Cloudflare-Workers-Chat，我给这个仓库进行二次改写，感谢大佬
 
 ## 许可
 
